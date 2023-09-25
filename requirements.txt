@@ -1,0 +1,7 @@
+pyside6
+pyqtdarktheme
+numpy
+pyopengl
+pillow
+pyusb
+libusb-package
