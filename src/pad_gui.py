@@ -33,18 +33,27 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(MainWidget())
 
 
+class MainApplication(QtWidgets.QApplication):
+    def __init__(self):
+        super(MainApplication, self).__init__(sys.argv)
+        self.set_opengl_doublebuffering()
+        self.setWindowIcon(QtGui.QIcon("../assets/favicon.ico"))
+        qdarktheme.setup_theme(custom_colors={"primary": "#ad02ff"})
+        palette = self.palette()
+        window_text = QtGui.QPalette.ColorRole.WindowText
+        palette.setColor(window_text, QtGui.QColor(255, 255, 255))
+        self.setPalette(palette)
+        self.window = MainWindow()
+        self.window.show()
+
+    @staticmethod
+    def set_opengl_doublebuffering():
+        format = QtGui.QSurfaceFormat()
+        format.setSwapInterval(1)
+        format.setSwapBehavior(QtGui.QSurfaceFormat.SwapBehavior.DoubleBuffer)
+        QtGui.QSurfaceFormat.setDefaultFormat(format)
+
+
 if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
-    app.setWindowIcon(QtGui.QIcon("../assets/favicon.ico"))
-    qdarktheme.setup_theme(custom_colors={"primary": "#ad02ff"})
-    palette = app.palette()
-    palette.setColor(QtGui.QPalette.ColorRole.WindowText,
-                     QtGui.QColor(255, 255, 255))
-    app.setPalette(palette)
-    format = QtGui.QSurfaceFormat()
-    format.setSwapInterval(1)
-    format.setSwapBehavior(QtGui.QSurfaceFormat.SwapBehavior.DoubleBuffer)
-    QtGui.QSurfaceFormat.setDefaultFormat(format)
-    window = MainWindow()
-    window.show()
+    app = MainApplication()
     app.exec()
