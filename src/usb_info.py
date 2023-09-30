@@ -7,8 +7,8 @@ class HIDInfo:
 
     VID: int
     PID: int
-    LIGHTS_EP: int
-    SENSORS_EP: int
+    WRITE_EP: int
+    READ_EP: int
     BYTES: int
 
 
