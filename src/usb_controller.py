@@ -11,16 +11,16 @@ class USBDeviceList:
     """Device list class for a given dance pad specification."""
 
     @staticmethod
-    def connected_pad_names(pad_info: HIDInfo) -> list[str | None]:
-        pads: list[usb.core.Device] = []
+    def connected_device_names(info: HIDInfo) -> list[str | None]:
+        devs: list[usb.core.Device] = []
         for dev in libusb_package.find(
-            find_all=True,  idVendor=pad_info.VID, idProduct=pad_info.PID
+            find_all=True,  idVendor=info.VID, idProduct=info.PID
         ):
-            pads.append(dev)
-        return [pad.serial_number for pad in pads]
+            devs.append(dev)
+        return [dev.serial_number for dev in devs]
 
     @staticmethod
-    def get_pad_by_serial(
+    def get_device_by_serial(
         vid: int, pid: int, serial: str
     ) -> usb.core.Device | None:
         devices: list[usb.core.Device] | None = libusb_package.find(
@@ -46,7 +46,7 @@ class HIDEndpointProcess(multiprocessing.Process):
         self.start()
 
     def run(self) -> None:
-        self._device = USBDeviceList.get_pad_by_serial(
+        self._device = USBDeviceList.get_device_by_serial(
             self._info.VID, self._info.PID, self._serial
         )
         while True:
@@ -66,12 +66,12 @@ class HIDEndpointProcess(multiprocessing.Process):
 
 
 class HIDReadProcess(HIDEndpointProcess):
-    """Child class for reading sensor data from an HID Endpoint."""
+    """Child class for reading data from an HID Endpoint."""
 
     def _process(self) -> str | None:
         self._device: usb.core.Device
         sensor_data = self._device.read(
-            self._info.SENSORS_EP, self._info.BYTES
+            self._info.READ_EP, self._info.BYTES
         )
         if self._queue.full():
             self._queue.get_nowait()
@@ -79,9 +79,9 @@ class HIDReadProcess(HIDEndpointProcess):
 
 
 class HIDWriteProcess(HIDEndpointProcess):
-    """Child class for writing light data to an HID Endpoint."""
+    """Child class for writing data to an HID Endpoint."""
 
     def _process(self) -> str | None:
         self._device: usb.core.Device
         light_data = self._queue.get_nowait()
-        self._device.write(self._info.LIGHTS_EP, light_data)
+        self._device.write(self._info.WRITE_EP, light_data)
