@@ -6,14 +6,14 @@ from pad_model import PadModel
 from pad_widget_view import PadWidgetView
 
 
-class PadWidgetController(QtOpenGLWidgets.QOpenGLWidget):
+class PadWidget(QtOpenGLWidgets.QOpenGLWidget):
     """An animated widget displaying sensor and LED data."""
 
-    def __init__(self, pad_model: PadModel, pad_view: PadWidgetView):
-        super(PadWidgetController, self).__init__()
+    def __init__(self, pad_model: PadModel):
+        super(PadWidget, self).__init__()
         self.setFixedSize(PadWidgetView.SIZE, PadWidgetView.SIZE)
         self.model = pad_model
-        self.view = pad_view
+        self.view = PadWidgetView()
         self.setMouseTracking(True)
         self._dragging = False
         self._last_mouse_y = None
