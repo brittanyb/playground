@@ -10,14 +10,9 @@ class ConnectionWidget(QtWidgets.QWidget):
         super(ConnectionWidget, self).__init__()
         self._controller = ReflexController()
         self._active = False
-        self.refresh_icon = QtWidgets.QStyle.StandardPixmap.SP_BrowserReload
-        self.connect_icon = QtWidgets.QStyle.StandardPixmap.SP_MediaPlay
-        self.disconnect_icon = QtWidgets.QStyle.StandardPixmap.SP_MediaStop
         self._refresh = QtWidgets.QToolButton()
-        self._refresh.setIcon(self.style().standardIcon(self.refresh_icon))
         self._refresh.clicked.connect(self.refresh_pads)
         self._connect = QtWidgets.QToolButton()
-        self._connect.setIcon(self.style().standardIcon(self.connect_icon))
         self._connect.clicked.connect(self.toggle_pad_connection)
         self._dropdown = QtWidgets.QComboBox()
         layout = QtWidgets.QHBoxLayout()
@@ -27,6 +22,7 @@ class ConnectionWidget(QtWidgets.QWidget):
         layout.setContentsMargins(1, 1, 1, 1)
         self.setLayout(layout)
         self.refresh_pads()
+        self.set_widget_states()
 
     def _set_connect_button(self) -> None:
         if self._active:
@@ -59,14 +55,14 @@ class ConnectionWidget(QtWidgets.QWidget):
             return
         self._refresh.setEnabled(True)
 
-    def _set_widgets(self) -> None:
+    def set_widget_states(self) -> None:
         self._set_connect_button()
         self._set_dropdown()
         self._set_refresh()
 
     def refresh_pads(self) -> None:
         self._controller.enumerate_pads()
-        self._set_widgets()
+        self.set_widget_states()
 
     def toggle_pad_connection(self) -> None:
         if self._active:
@@ -77,4 +73,4 @@ class ConnectionWidget(QtWidgets.QWidget):
             serial = self._dropdown.itemText(self._dropdown.currentIndex())
             if self._controller.connect_pad(serial):
                 self._active = True
-        self._set_widgets()
+        self.set_widget_states()
