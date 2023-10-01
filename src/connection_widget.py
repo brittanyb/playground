@@ -10,7 +10,9 @@ class ConnectionWidget(QtWidgets.QWidget):
         super(ConnectionWidget, self).__init__()
         self._controller = ReflexController()
         self._active = False
+        refresh_icon = QtWidgets.QStyle.StandardPixmap.SP_BrowserReload
         self._refresh = QtWidgets.QToolButton()
+        self._refresh.setIcon(self.style().standardIcon(refresh_icon))
         self._refresh.clicked.connect(self.refresh_pads)
         self._connect = QtWidgets.QToolButton()
         self._connect.clicked.connect(self.toggle_pad_connection)
