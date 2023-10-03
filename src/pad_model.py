@@ -16,9 +16,9 @@ class LEDModel:
 
     @colour.setter
     def colour(self, colour: list[int]):
-        r = np.clip(colour[0], 0, self.B8_MAX)
-        g = np.clip(colour[1], 0, self.B8_MAX)
-        b = np.clip(colour[2], 0, self.B8_MAX)
+        r = int(np.clip(colour[0], 0, self.B8_MAX))
+        g = int(np.clip(colour[1], 0, self.B8_MAX))
+        b = int(np.clip(colour[2], 0, self.B8_MAX))
         self._colour = [r, g, b]
 
     @property
@@ -48,7 +48,7 @@ class SensorModel:
 
     @base_value.setter
     def base_value(self, base_value: int):
-        self._base_value = np.clip(base_value, 0, self.B12_MAX)
+        self._base_value = int(np.clip(base_value, 0, self.B12_MAX))
 
     @property
     def current_value(self) -> int:
@@ -56,7 +56,7 @@ class SensorModel:
 
     @current_value.setter
     def current_value(self, current_value: int):
-        self._current_value = np.clip(current_value, 0, self.MAX_BASE)
+        self._current_value = int(np.clip(current_value, 0, self.MAX_BASE))
 
     @property
     def delta_value(self) -> int:
@@ -68,8 +68,8 @@ class SensorModel:
 
     @threshold.setter
     def threshold(self, threshold: int):
-        self._threshold = np.clip(
-            threshold, self.hysteresis, self.MAX_ON)
+        self._threshold = int(np.clip(
+            threshold, self.hysteresis, self.MAX_ON))
 
     @property
     def hysteresis(self) -> int:
@@ -77,9 +77,9 @@ class SensorModel:
 
     @hysteresis.setter
     def hysteresis(self, hysteresis: int):
-        self._hysteresis = np.clip(
+        self._hysteresis = int(np.clip(
             hysteresis, 1, self.threshold
-        )
+        ))
 
     @property
     def off_threshold(self):
@@ -184,3 +184,36 @@ class PadModel:
     @property
     def panels(self) -> list[PanelModel]:
         return self._panels
+
+    @property
+    def profile_data(self) -> dict:
+        data = {}
+        for panel in self.panels:
+            for sensor in panel.sensors:
+                pc = panel.coord
+                sc = sensor.coord
+                key_sub = f"{pc[0]}_{pc[1]}_{sc[0]}_{sc[1]}_"
+                data[key_sub + "base_value"] = sensor.base_value
+                data[key_sub + "threshold"] = sensor.threshold
+                data[key_sub + "hysteresis"] = sensor.hysteresis
+        return data
+
+    @profile_data.setter
+    def profile_data(self, profile_data: dict) -> None:
+        for panel in self.panels:
+            for sensor in panel.sensors:
+                pc = panel.coord
+                sc = sensor.coord
+                key_sub = f"{pc[0]}_{pc[1]}_{sc[0]}_{sc[1]}_"
+                sensor.base_value = profile_data.get(
+                    f"{key_sub}base_value",
+                    sensor.base_value
+                )
+                sensor.threshold = profile_data.get(
+                    f"{key_sub}threshold",
+                    sensor.threshold
+                )
+                sensor.hysteresis = profile_data.get(
+                    f"{key_sub}hysteresis",
+                    sensor.hysteresis
+                )
