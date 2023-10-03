@@ -5,3 +5,6 @@ pyopengl
 pillow
 pyusb
 libusb-package
+appdirs
+pyinstaller
+pyautogui
