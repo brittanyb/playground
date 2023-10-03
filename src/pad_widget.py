@@ -9,6 +9,8 @@ from pad_widget_view import PadWidgetView
 class PadWidget(QtOpenGLWidgets.QOpenGLWidget):
     """An animated widget displaying sensor and LED data."""
 
+    update_event = QtCore.Signal()
+
     def __init__(self, pad_model: PadModel):
         super(PadWidget, self).__init__()
         self.setFixedSize(PadWidgetView.SIZE, PadWidgetView.SIZE)
@@ -56,6 +58,7 @@ class PadWidget(QtOpenGLWidgets.QOpenGLWidget):
             sensor.threshold += mouse_diff
         elif self._button == QtCore.Qt.MouseButton.RightButton:
             sensor.hysteresis -= mouse_diff
+        self.update_event.emit()
         self._last_mouse_y = m_y
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:

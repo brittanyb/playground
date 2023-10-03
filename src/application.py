@@ -10,17 +10,20 @@ from profile_widget import ProfileWidget
 from profile_controller import ProfileController
 from pad_widget import PadWidget
 from pad_model import PadModel
+from reflex_controller import ReflexController
+from test_data_generator import TestPadWidget
 
 
 class MainWidget(QtWidgets.QWidget):
     """Central widget containing all Pad GUI widgets."""
 
     def __init__(
-        self, pad_model: PadModel, profile_controller: ProfileController
+        self, pad_model: PadModel, profile_controller: ProfileController,
+        pad_controller: ReflexController
     ):
         super(MainWidget, self).__init__()
-        self.pad_connection = ConnectionWidget()
-        self.pad_profile = ProfileWidget(profile_controller)
+        self.pad_connection = ConnectionWidget(pad_controller)
+        self.pad_profile = ProfileWidget(profile_controller, pad_model)
         self.pad_display = PadWidget(pad_model)
         splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
         splitter.setChildrenCollapsible(False)
@@ -32,19 +35,24 @@ class MainWidget(QtWidgets.QWidget):
         layout.addWidget(splitter)
         layout.addWidget(self.pad_display)
         self.setLayout(layout)
+        self.test_widget = TestPadWidget(pad_model, self.pad_display)
 
 
 class MainWindow(QtWidgets.QMainWindow):
     """Main window for Pad GUI."""
 
     def __init__(
-            self, pad_model: PadModel, profile_controller: ProfileController
+            self, pad_model: PadModel, profile_controller: ProfileController,
+            pad_controller: ReflexController
     ):
         super(MainWindow, self).__init__()
-        widget = MainWidget(pad_model, profile_controller)
+        self.widget = MainWidget(pad_model, profile_controller, pad_controller)
         self.setWindowTitle("RE:Flex Dance - Playground")
-        self.setCentralWidget(widget)
-        self.setFixedSize(widget.width(), widget.height())
+        self.setCentralWidget(self.widget)
+        max_button = QtCore.Qt.WindowType.WindowMaximizeButtonHint
+        self.setWindowFlag(max_button, False)
+        self.show()
+        self.setFixedSize(self.width(), self.height())
 
 
 class MainApplication(QtWidgets.QApplication):
@@ -55,8 +63,12 @@ class MainApplication(QtWidgets.QApplication):
         self.set_opengl_doublebuffering()
         self.set_application_theme()
         self.set_shared_resources()
-        self.window = MainWindow(self.pad_model, self.profile_controller)
-        self.window.show()
+        self.window = MainWindow(
+            self.pad_model, self.profile_controller, self.pad_controller
+        )
+        model_update = self.window.widget.pad_display.update_event
+        set_widget = self.window.widget.pad_profile.set_save_state
+        model_update.connect(set_widget)
 
     @staticmethod
     def set_opengl_doublebuffering() -> None:
@@ -75,7 +87,8 @@ class MainApplication(QtWidgets.QApplication):
 
     def set_shared_resources(self) -> None:
         self.pad_model = PadModel()
-        self.profile_controller = ProfileController()
+        self.pad_controller = ReflexController()
+        self.profile_controller = ProfileController(self.pad_model)
 
 
 if __name__ == "__main__":
