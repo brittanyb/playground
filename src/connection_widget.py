@@ -1,3 +1,4 @@
+import PySide6.QtCore as QtCore
 import PySide6.QtWidgets as QtWidgets
 
 from reflex_controller import ReflexController
@@ -6,9 +7,9 @@ from reflex_controller import ReflexController
 class ConnectionWidget(QtWidgets.QWidget):
     """Widget to manage an open connection to a dance pad."""
 
-    def __init__(self):
+    def __init__(self, controller: ReflexController):
         super(ConnectionWidget, self).__init__()
-        self._controller = ReflexController()
+        self._controller = controller
         self._active = False
         refresh_icon = QtWidgets.QStyle.StandardPixmap.SP_BrowserReload
         self._refresh = QtWidgets.QToolButton()
@@ -16,7 +17,7 @@ class ConnectionWidget(QtWidgets.QWidget):
         self._refresh.clicked.connect(self.refresh_pads)
         self._connect = QtWidgets.QToolButton()
         self._connect.clicked.connect(self.toggle_pad_connection)
-        self._label = QtWidgets.QLabel("Pad: ")
+        self._label = QtWidgets.QLabel("Pad:")
         self._label.setContentsMargins(0, 0, 0, 0)
         self._dropdown = QtWidgets.QComboBox()
         expand = QtWidgets.QSizePolicy.Policy.Expanding
@@ -29,6 +30,9 @@ class ConnectionWidget(QtWidgets.QWidget):
         layout.addWidget(self._refresh)
         layout.setContentsMargins(1, 1, 1, 1)
         self.setLayout(layout)
+        self._refresh_timer = QtCore.QTimer()
+        self._refresh_timer.timeout.connect(self._set_refresh)
+        self._refresh_timer.setSingleShot(True)
         self.refresh_pads()
         self.set_widget_states()
 
@@ -45,20 +49,22 @@ class ConnectionWidget(QtWidgets.QWidget):
         self._connect.setEnabled(True)
 
     def _set_dropdown(self) -> None:
+        current_pad = self._dropdown.currentText()
         if self._active:
             self._dropdown.setDisabled(True)
             return
-        for _ in range(self._dropdown.count()):
-            self._dropdown.removeItem(0)
+        self._dropdown.clear()
         serials = [s for s in self._controller.all_pads if isinstance(s, str)]
         if len(serials):
             for serial in sorted(serials):
                 if serial:
                     self._dropdown.addItem(serial)
         self._dropdown.setEnabled(True)
+        if current_pad and (name := self._dropdown.findText(current_pad)):
+            self._dropdown.setCurrentIndex(name)
 
     def _set_refresh(self) -> None:
-        if self._active:
+        if self._active or self._refresh_timer.isActive():
             self._refresh.setDisabled(True)
             return
         self._refresh.setEnabled(True)
@@ -69,6 +75,8 @@ class ConnectionWidget(QtWidgets.QWidget):
         self._set_refresh()
 
     def refresh_pads(self) -> None:
+        self._refresh_timer.start(1000)
+        self._set_refresh()
         self._controller.enumerate_pads()
         self.set_widget_states()
 
