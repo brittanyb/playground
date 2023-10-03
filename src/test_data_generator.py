@@ -1,14 +1,15 @@
-import PySide6.QtCore as QtCore
 import math
 
+import PySide6.QtCore as QtCore
+
 from pad_model import PadModel
-from pad_widget_controller import PadWidgetController
+from pad_widget import PadWidget
 
 
 class TestPadWidget:
     """Dummy data to test pad widget animations."""
 
-    def __init__(self, model: PadModel, controller: PadWidgetController):
+    def __init__(self, model: PadModel, controller: PadWidget):
         self.t = 0
         self.timer = QtCore.QTimer()
         self.timer.setInterval(16)
