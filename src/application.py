@@ -1,3 +1,4 @@
+import multiprocessing
 import sys
 
 import PySide6.QtCore as QtCore
@@ -6,69 +7,78 @@ import PySide6.QtWidgets as QtWidgets
 import qdarktheme
 
 from connection_widget import ConnectionWidget
+from gui_event_manager import GUIEventManager
+from interface_process import InterfaceProcess
 from profile_widget import ProfileWidget
-from profile_controller import ProfileController
 from pad_widget import PadWidget
-from pad_model import PadModel
-from reflex_controller import ReflexController
-from test_data_generator import TestPadWidget
 
 
 class MainWidget(QtWidgets.QWidget):
     """Central widget containing all Pad GUI widgets."""
 
-    def __init__(
-        self, pad_model: PadModel, profile_controller: ProfileController,
-        pad_controller: ReflexController
-    ):
+    STYLESHEET = f"QSplitter::handle {{background-color: transparent;}}"
+
+    def __init__(self):
         super(MainWidget, self).__init__()
-        self.pad_connection = ConnectionWidget(pad_controller)
-        self.pad_profile = ProfileWidget(profile_controller, pad_model)
-        self.pad_display = PadWidget(pad_model)
+        self._pad_connection = ConnectionWidget()
+        self._pad_profile = ProfileWidget()
+        self._pad_widget = PadWidget()
+        self.event_manager = GUIEventManager(
+            self._pad_connection, self._pad_widget, self._pad_profile
+        )
+
         splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
         splitter.setChildrenCollapsible(False)
-        style = f"QSplitter::handle {{background-color: transparent;}}"
-        splitter.setStyleSheet(style)
-        splitter.addWidget(self.pad_connection)
-        splitter.addWidget(self.pad_profile)
+        splitter.setStyleSheet(self.STYLESHEET)
+        splitter.addWidget(self._pad_connection)
+        splitter.addWidget(self._pad_profile)
+
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(splitter)
-        layout.addWidget(self.pad_display)
+        layout.addWidget(self._pad_widget)
         self.setLayout(layout)
-        self.test_widget = TestPadWidget(pad_model, self.pad_display)
 
 
 class MainWindow(QtWidgets.QMainWindow):
     """Main window for Pad GUI."""
 
-    def __init__(
-            self, pad_model: PadModel, profile_controller: ProfileController,
-            pad_controller: ReflexController
-    ):
+    TITLE = "RE:Flex Dance - Playground"
+
+    def __init__(self):
         super(MainWindow, self).__init__()
-        self.widget = MainWidget(pad_model, profile_controller, pad_controller)
-        self.setWindowTitle("RE:Flex Dance - Playground")
+        self.widget = MainWidget()
+        self.setWindowTitle(self.TITLE)
         self.setCentralWidget(self.widget)
         max_button = QtCore.Qt.WindowType.WindowMaximizeButtonHint
         self.setWindowFlag(max_button, False)
         self.show()
         self.setFixedSize(self.width(), self.height())
 
+    def closeEvent(self, event: QtCore.QEvent) -> None:
+        self.widget.event_manager.terminate()
+        event.accept()
+
 
 class MainApplication(QtWidgets.QApplication):
     """Application entry point for Pad GUI."""
+
+    FULL_BLACK = (255, 255, 255)
+    REFLEX_PURPLE = {"primary": "#ad02ff"}
+
+    ICON_PATH = "../assets/favicon.ico"
 
     def __init__(self):
         super(MainApplication, self).__init__(sys.argv)
         self.set_opengl_doublebuffering()
         self.set_application_theme()
-        self.set_shared_resources()
-        self.window = MainWindow(
-            self.pad_model, self.profile_controller, self.pad_controller
-        )
-        model_update = self.window.widget.pad_display.update_event
-        set_widget = self.window.widget.pad_profile.set_save_state
-        model_update.connect(set_widget)
+        self.window = MainWindow()
+        self.setup_interface()
+
+    def setup_interface(self) -> None:
+        self.interface_process = InterfaceProcess()
+        self.window.widget.event_manager.queue = self.interface_process.queue
+        self.interface_process.start()
+        self.window.widget.event_manager.start()
 
     @staticmethod
     def set_opengl_doublebuffering() -> None:
@@ -78,17 +88,12 @@ class MainApplication(QtWidgets.QApplication):
         QtGui.QSurfaceFormat.setDefaultFormat(format)
 
     def set_application_theme(self) -> None:
-        self.setWindowIcon(QtGui.QIcon("../assets/favicon.ico"))
-        qdarktheme.setup_theme(custom_colors={"primary": "#ad02ff"})
+        self.setWindowIcon(QtGui.QIcon(self.ICON_PATH))
+        qdarktheme.setup_theme(custom_colors=dict(self.REFLEX_PURPLE))
         palette = self.palette()
         window_text = QtGui.QPalette.ColorRole.WindowText
-        palette.setColor(window_text, QtGui.QColor(255, 255, 255))
+        palette.setColor(window_text, QtGui.QColor(*self.FULL_BLACK))
         self.setPalette(palette)
-
-    def set_shared_resources(self) -> None:
-        self.pad_model = PadModel()
-        self.pad_controller = ReflexController()
-        self.profile_controller = ProfileController(self.pad_model)
 
 
 if __name__ == "__main__":
