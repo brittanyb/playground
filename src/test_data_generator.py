@@ -1,22 +1,16 @@
 import math
 
-import PySide6.QtCore as QtCore
-
 from pad_model import PadModel
-from pad_widget import PadWidget
 
 
 class TestPadWidget:
     """Dummy data to test pad widget animations."""
 
-    def __init__(self, model: PadModel, controller: PadWidget):
+    def __init__(
+        self, model: PadModel
+    ):
         self.t = 0
-        self.timer = QtCore.QTimer()
-        self.timer.setInterval(16)
-        self.timer.timeout.connect(self.update)
-        self.timer.start()
         self.model = model
-        self.view = controller
         for p_i, panel in enumerate(self.model.panels):
             for s_i, sensor in enumerate(panel.sensors):
                 threshold = int((s_i + p_i * 4) * 90 / 16 + 10)
@@ -32,7 +26,6 @@ class TestPadWidget:
                 amp = self.get_sensor_amplitude(s_i, self.t)
                 sensor.base_value = 0
                 sensor.current_value = amp
-        self.view.update()
 
     def get_led_colour(self, y: int, x: int, t: int, d: int) -> list[int]:
         phase_multiplier = 0.005
