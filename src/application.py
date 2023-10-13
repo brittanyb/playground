@@ -54,10 +54,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.show()
         self.setFixedSize(self.width(), self.height())
 
-    def closeEvent(self, event: QtCore.QEvent) -> None:
-        self.widget.event_manager.terminate()
-        event.accept()
-
 
 class MainApplication(QtWidgets.QApplication):
     """Application entry point for Pad GUI."""
@@ -75,9 +71,10 @@ class MainApplication(QtWidgets.QApplication):
         self.setup_interface()
 
     def setup_interface(self) -> None:
-        self.interface_process = InterfaceProcess()
-        self.window.widget.event_manager.queue = self.interface_process.queue
-        self.interface_process.start()
+        self.interface = InterfaceProcess()
+        self.window.widget.event_manager.tx_queue = self.interface.rx_queue
+        self.window.widget.event_manager.rx_queue = self.interface.tx_queue
+        self.interface.start()
         self.window.widget.event_manager.start()
 
     @staticmethod
