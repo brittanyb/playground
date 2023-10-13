@@ -22,6 +22,7 @@ class ConnectionWidget(QtWidgets.QWidget):
         self._refresh = QtWidgets.QToolButton()
         self._set_toolbutton_icon(self._refresh, self.REFRESH_ICON)
         self._connect = QtWidgets.QToolButton()
+        self._set_toolbutton_icon(self._connect, self.CONNECT_PAD_ICON)
         self._label = QtWidgets.QLabel(self.LABEL_STR)
         self._label.setContentsMargins(*self.LABEL_PADDING)
         self._dropdown = QtWidgets.QComboBox()
