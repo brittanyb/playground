@@ -53,12 +53,8 @@ class ReflexController:
         return self._serials
 
     @property
-    def connected_pads(self) -> list[ReflexPadInstance | None]:
-        return self._instances
-
-    @property
     def all_pads(self) -> list[str | None]:
         return [
             *self._serials,
-            *[inst.serial for inst in self.connected_pads
+            *[inst.serial for inst in self._instances
               if isinstance(inst, ReflexPadInstance)]]
