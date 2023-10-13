@@ -1,4 +1,3 @@
-import multiprocessing
 import sys
 
 import PySide6.QtCore as QtCore
@@ -53,6 +52,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowFlag(max_button, False)
         self.show()
         self.setFixedSize(self.width(), self.height())
+
+    def closeEvent(self, event: QtCore.QEvent) -> None:
+        self.widget.event_manager.terminate()
+        event.accept()
 
 
 class MainApplication(QtWidgets.QApplication):
