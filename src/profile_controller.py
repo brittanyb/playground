@@ -85,7 +85,7 @@ class ProfileController:
 
     @property
     def profile_names(self) -> list[str]:
-        return list(self._profile_map.keys())
+        return sorted(list(self._profile_map.keys()))
 
     @property
     def saved_data(self) -> dict:
