@@ -22,39 +22,39 @@ class ReflexPadInstance:
 class ReflexController:
     """USB controller for RE:Flex v2 dance pads."""
 
+    CONNECTED = True
+    DISCONNECTED = False
+
     def __init__(self):
         self._info = ReflexV2Info()
-        self._instances = []
+        self._instance = None
         self._serials = []
         self.enumerate_pads()
 
     def enumerate_pads(self) -> None:
         self._serials = USBDeviceList.connected_device_names(self._info)
 
+    def toggle_pad_connection(self, serial: str) -> bool:
+        if self._instance:
+            return self.disconnect_pad(serial)
+        else:
+            return self.connect_pad(serial)
+
     def connect_pad(self, serial: str) -> bool:
-        pad = ReflexPadInstance(self._info, serial)
-        if pad:
-            self._instances.append(pad)
-            self._serials.remove(serial)
-            return True
-        return False
+        if pad := ReflexPadInstance(self._info, serial):
+            if self._instance is None and serial in self._serials:
+                self._instance = pad
+                return self.CONNECTED
+        return self.DISCONNECTED
 
     def disconnect_pad(self, serial: str) -> bool:
-        for pad in self._instances:
-            if isinstance(pad, ReflexPadInstance) and pad.serial == serial:
-                pad.disconnect()
-                self._instances.remove(pad)
-                self._serials.append(serial)
-                return True
-        return False
+        if not self._instance:
+            return self.DISCONNECTED
+        if self._instance.serial == serial:
+            self._instance.disconnect()
+            self._instance = None
+            return self.DISCONNECTED
+        return self.CONNECTED
 
-    @property
-    def available_pads(self) -> list[str | None]:
+    def get_all_pads(self) -> list[str | None]:
         return self._serials
-
-    @property
-    def all_pads(self) -> list[str | None]:
-        return [
-            *self._serials,
-            *[inst.serial for inst in self._instances
-              if isinstance(inst, ReflexPadInstance)]]

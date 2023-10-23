@@ -1,6 +1,7 @@
 import multiprocessing
 
 import libusb_package
+import time
 import usb.core
 import usb.backend.libusb1
 
@@ -68,10 +69,12 @@ class HIDEndpointProcess(multiprocessing.Process):
 class HIDReadProcess(HIDEndpointProcess):
     """Child class for reading data from an HID Endpoint."""
 
+    TIMEOUT_MS = 2
+
     def _process(self) -> str | None:
         self._device: usb.core.Device
         sensor_data = self._device.read(
-            self._info.READ_EP, self._info.BYTES
+            self._info.READ_EP, self._info.BYTES, self.TIMEOUT_MS
         )
         if self._queue.full():
             self._queue.get_nowait()
@@ -81,7 +84,11 @@ class HIDReadProcess(HIDEndpointProcess):
 class HIDWriteProcess(HIDEndpointProcess):
     """Child class for writing data to an HID Endpoint."""
 
+    TIMEOUT_SECS = 0.001
+
     def _process(self) -> str | None:
         self._device: usb.core.Device
-        light_data = self._queue.get_nowait()
-        self._device.write(self._info.WRITE_EP, light_data)
+        if not self._queue.empty():
+            self._device.write(self._info.WRITE_EP, self._queue.get_nowait())
+        else:
+            time.sleep(self.TIMEOUT_SECS)

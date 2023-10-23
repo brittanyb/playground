@@ -59,7 +59,7 @@ class ProfileController:
     def create_new_profile(self) -> str:
         index = 1
         profile_name = None
-        while profile_name in self.profile_names or profile_name is None:
+        while profile_name in self.get_profile_names() or profile_name is None:
             profile_name = f"{self.UNNAMED_PREFIX} {index}"
             index += 1
         self.save_user_profile(profile_name)
@@ -83,10 +83,8 @@ class ProfileController:
             pathlib.Path.unlink(profile_path)
         self._load_profile_map()
 
-    @property
-    def profile_names(self) -> list[str]:
+    def get_profile_names(self) -> list[str]:
         return sorted(list(self._profile_map.keys()))
 
-    @property
-    def saved_data(self) -> dict:
+    def get_saved_data(self) -> dict:
         return self._saved_data
