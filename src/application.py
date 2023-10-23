@@ -6,8 +6,8 @@ import PySide6.QtWidgets as QtWidgets
 import qdarktheme
 
 from connection_widget import ConnectionWidget
-from gui_event_manager import GUIEventManager
-from interface_process import InterfaceProcess
+from data_process import DataProcess
+from gui_thread import GUIThread
 from profile_widget import ProfileWidget
 from pad_widget import PadWidget
 
@@ -22,7 +22,7 @@ class MainWidget(QtWidgets.QWidget):
         self._pad_connection = ConnectionWidget()
         self._pad_profile = ProfileWidget()
         self._pad_widget = PadWidget()
-        self.event_manager = GUIEventManager(
+        self.update_thread = GUIThread(
             self._pad_connection, self._pad_widget, self._pad_profile
         )
 
@@ -54,7 +54,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setFixedSize(self.width(), self.height())
 
     def closeEvent(self, event: QtCore.QEvent) -> None:
-        self.widget.event_manager.terminate()
+        self.widget.update_thread.terminate()
         event.accept()
 
 
@@ -74,11 +74,12 @@ class MainApplication(QtWidgets.QApplication):
         self.setup_interface()
 
     def setup_interface(self) -> None:
-        self.interface = InterfaceProcess()
-        self.window.widget.event_manager.tx_queue = self.interface.rx_queue
-        self.window.widget.event_manager.rx_queue = self.interface.tx_queue
-        self.interface.start()
-        self.window.widget.event_manager.start()
+        self._data_proc = DataProcess()
+        self.window.widget.update_thread.tx_queue = self._data_proc.rx_queue
+        self.window.widget.update_thread.rx_queue = self._data_proc.tx_queue
+        self._data_proc.start()
+        self.window.widget.update_thread.start()
+        self.aboutToQuit.connect(self._data_proc.terminate)
 
     @staticmethod
     def set_opengl_doublebuffering() -> None:
