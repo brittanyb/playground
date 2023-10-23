@@ -1,3 +1,4 @@
+import PySide6.QtCore as QtCore
 import PySide6.QtWidgets as QtWidgets
 
 
@@ -15,6 +16,9 @@ class ConnectionWidget(QtWidgets.QWidget):
 
     LABEL_PADDING = (0, 0, 0, 0)
     LAYOUT_PADDING = (1, 1, 1, 1)
+
+    REFRESH_CLICKED = QtCore.Signal()
+    CONNECT_CLICKED = QtCore.Signal()
 
     def __init__(self):
         super(ConnectionWidget, self).__init__()
@@ -36,6 +40,9 @@ class ConnectionWidget(QtWidgets.QWidget):
         layout.setContentsMargins(*self.LAYOUT_PADDING)
         self.setLayout(layout)
 
+        self._refresh.clicked.connect(self.REFRESH_CLICKED.emit)
+        self._connect.clicked.connect(self.CONNECT_CLICKED.emit)
+
     def _set_toolbutton_icon(
         self, button: QtWidgets.QToolButton,
         icon: QtWidgets.QStyle.StandardPixmap
@@ -43,27 +50,25 @@ class ConnectionWidget(QtWidgets.QWidget):
         button.setIcon(self.style().standardIcon(icon))
         button.update()
 
-    def set_connect_button(self, active: bool, pads: bool) -> None:
+    def set_connect_button_icon(self, active: bool) -> None:
         if active:
-            self._set_toolbutton_icon(self._connect, self.DISCONNECT_PAD_ICON)
-        else:
             self._set_toolbutton_icon(self._connect, self.CONNECT_PAD_ICON)
-        if not pads:
-            self._connect.setDisabled(True)
         else:
-            self._connect.setEnabled(True)
+            self._set_toolbutton_icon(self._connect, self.DISCONNECT_PAD_ICON)
 
-    def set_dropdown(
-        self, active: bool, items: list[str] | None = None
+    def set_connect_button_state(self, active: bool) -> None:
+        self._connect.setEnabled(active)
+
+    def set_dropdown_state(self, active: bool):
+        self._dropdown.setEnabled(active)
+
+    def set_dropdown_items(
+        self, items: list[str] | None = None
     ) -> None:
         pad_name = self._dropdown.currentText()
         self._dropdown.clear()
         if items:
             self._dropdown.addItems(items)
-        if not active:
-            self._dropdown.setDisabled(True)
-        else:
-            self._dropdown.setEnabled(True)
         if pad_name and (index := self._dropdown.findText(pad_name)):
             self._dropdown.setCurrentIndex(index)
         else:
@@ -75,6 +80,5 @@ class ConnectionWidget(QtWidgets.QWidget):
         else:
             self._refresh.setEnabled(True)
 
-    @property
-    def current_pad_serial(self) -> str:
+    def get_pad_serial(self,) -> str:
         return self._dropdown.currentText()

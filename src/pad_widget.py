@@ -11,16 +11,16 @@ class PadWidget(QtOpenGLWidgets.QOpenGLWidget):
 
     update_event = QtCore.Signal()
 
-    def __init__(self, pad_model: PadModel):
+    def __init__(self):
         super(PadWidget, self).__init__()
         self.setFixedSize(PadWidgetView.SIZE, PadWidgetView.SIZE)
-        self.model = pad_model
         self.view = PadWidgetView()
         self.setMouseTracking(True)
         self._dragging = False
         self._last_mouse_y = None
         self._rect_coord = None
         self._button = None
+        self.model = PadModel()
 
     def initializeGL(self) -> None:
         self.view.init_painting(self.model)
@@ -69,3 +69,8 @@ class PadWidget(QtOpenGLWidgets.QOpenGLWidget):
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
         self._dragging = False
+        event.accept()
+
+    def update(self, data: dict) -> None:
+        self.model.data = data
+        super().update()

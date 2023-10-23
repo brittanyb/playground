@@ -1,13 +1,19 @@
+import PySide6.QtCore as QtCore
 import PySide6.QtWidgets as QtWidgets
 
 
 class ProfileNameDialog(QtWidgets.QDialog):
+    """Dialog to re-name a user profile."""
+
+    DIALOG_TITLE = "Enter new profile name"
+    ACCEPT_STR = "OK"
+
     def __init__(self):
         super(ProfileNameDialog, self).__init__()
-        self.setWindowTitle("Enter new profile name")
+        self.setWindowTitle(self.DIALOG_TITLE)
 
         self.name_input = QtWidgets.QLineEdit()
-        accept = QtWidgets.QPushButton("OK")
+        accept = QtWidgets.QPushButton(self.ACCEPT_STR)
         accept.clicked.connect(self.accept)
 
         layout = QtWidgets.QVBoxLayout()
@@ -35,10 +41,16 @@ class ProfileWidget(QtWidgets.QWidget):
 
     LAYOUT_PADDING = (1, 1, 1, 1)
 
+    NEW_CLICKED = QtCore.Signal()
+    REMOVE_CLICKED = QtCore.Signal()
+    RENAME_CLICKED = QtCore.Signal()
+    SAVE_CLICKED = QtCore.Signal()
+    DROPDOWN_ACTIVATED = QtCore.Signal(str)
+
     def __init__(self):
         super(ProfileWidget, self).__init__()
 
-        self._label = QtWidgets.QLabel("Profile:")
+        self._label = QtWidgets.QLabel(self.LABEL_STR)
         self._new = self._create_tool_button(self.NEW_ICON)
         self._save = self._create_tool_button(self.SAVE_ICON)
         self._remove = self._create_tool_button(self.REMOVE_ICON)
@@ -57,6 +69,12 @@ class ProfileWidget(QtWidgets.QWidget):
         layout.setContentsMargins(*self.LAYOUT_PADDING)
         self.setLayout(layout)
 
+        self._new.clicked.connect(self.NEW_CLICKED.emit)
+        self._save.clicked.connect(self.SAVE_CLICKED.emit)
+        self._remove.clicked.connect(self.REMOVE_CLICKED.emit)
+        self._rename.clicked.connect(self.RENAME_CLICKED.emit)
+        self._dropdown.activated.connect(self.DROPDOWN_ACTIVATED.emit)
+
     def _create_tool_button(
         self, icon: QtWidgets.QStyle.StandardPixmap
     ) -> QtWidgets.QToolButton:
@@ -66,6 +84,9 @@ class ProfileWidget(QtWidgets.QWidget):
 
     def add_dropdown_item(self, item: str) -> None:
         self._dropdown.addItem(item)
+
+    def set_dropdown_state(self, active: bool) -> None:
+        self._dropdown.setEnabled(active)
 
     def set_dropdown_items(self, items: list[str] | None = None) -> None:
         if not items:
@@ -87,18 +108,13 @@ class ProfileWidget(QtWidgets.QWidget):
         self._remove.setEnabled(True)
         self._rename.setEnabled(True)
 
-    def set_save_button(self, profile_unsaved: bool) -> None:
-        if profile_unsaved:
-            self._save.setEnabled(True)
-        else:
-            self._save.setDisabled(True)
+    def set_save_button(self, active: bool) -> None:
+        self._save.setEnabled(active)
 
     def get_profile_name(self) -> str | None:
         if not self._dropdown.isEnabled():
             return
-        dialog = ProfileNameDialog()
-        return dialog.get_name()
+        return ProfileNameDialog().get_name()
 
-    @property
-    def selected_pad_name(self) -> str:
+    def get_pad_name(self) -> str:
         return self._dropdown.currentText()
