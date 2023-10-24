@@ -20,7 +20,6 @@ class GUIThread(QtCore.QThread):
         profile_widget: ProfileWidget
     ):
         super(GUIThread, self).__init__()
-        self.daemon = True
         self._connection_widget = connection_widget
         self._pad_widget = pad_widget
         self._profile_widget = profile_widget
@@ -37,7 +36,8 @@ class GUIThread(QtCore.QThread):
 
     def create_widget_event_message_hooks(self) -> None:
         hooks = {
-            self._connection_widget.CONNECT_CLICKED: WidgetMessage.CONNECT
+            self._connection_widget.CONNECT_CLICKED: WidgetMessage.CONNECT,
+            self._connection_widget.REFRESH_CLICKED: WidgetMessage.REFRESH
         }
         for signal, message in hooks.items():
             signal.connect(lambda message=message: self.send_event(message))
@@ -45,7 +45,9 @@ class GUIThread(QtCore.QThread):
     def create_widget_data_hooks(self) -> None:
         self._data_requests = {
             WidgetMessage.INIT: [],
-            WidgetMessage.CONNECT: [self._connection_widget.get_pad_serial]
+            WidgetMessage.CONNECT: [self._connection_widget.get_pad_serial],
+            WidgetMessage.REFRESH: [],
+            WidgetMessage.QUIT: []
         }
 
     def create_widget_update_hooks(self) -> None:
@@ -82,6 +84,10 @@ class GUIThread(QtCore.QThread):
                 self._process_requests[message].emit(data)
             else:
                 time.sleep(self.TIMEOUT_SECS)
+
+    def terminate(self) -> None:
+        self.send_event(WidgetMessage.QUIT)
+        super().terminate()
 
     @property
     def rx_queue(self) -> multiprocessing.queues.Queue | None:

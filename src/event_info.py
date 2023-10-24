@@ -13,6 +13,7 @@ class WidgetMessage:
     SAVE = "GUI_save_profile"
     SELECT = "GUI_select_profile"
     INIT = "GUI_init_window"
+    QUIT = "GUI_quit"
 
 
 class DataProcessMessage:

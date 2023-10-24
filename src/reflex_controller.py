@@ -36,7 +36,7 @@ class ReflexController:
 
     def toggle_pad_connection(self, serial: str) -> bool:
         if self._instance:
-            return self.disconnect_pad(serial)
+            return self.disconnect_pad()
         else:
             return self.connect_pad(serial)
 
@@ -47,14 +47,12 @@ class ReflexController:
                 return self.CONNECTED
         return self.DISCONNECTED
 
-    def disconnect_pad(self, serial: str) -> bool:
-        if not self._instance:
+    def disconnect_pad(self) -> bool:
+        if self._instance is None:
             return self.DISCONNECTED
-        if self._instance.serial == serial:
-            self._instance.disconnect()
-            self._instance = None
-            return self.DISCONNECTED
-        return self.CONNECTED
+        self._instance.disconnect()
+        self._instance = None
+        return self.DISCONNECTED
 
     def get_all_pads(self) -> list[str | None]:
         return self._serials

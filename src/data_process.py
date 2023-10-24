@@ -27,6 +27,13 @@ class DataProcess(multiprocessing.Process):
             ],
             WidgetMessage.CONNECT: [
                 self._pad_controller.toggle_pad_connection
+            ],
+            WidgetMessage.REFRESH: [
+                self._pad_controller.enumerate_pads,
+                self._pad_controller.get_all_pads
+            ],
+            WidgetMessage.QUIT: [
+                self._pad_controller.disconnect_pad
             ]
         }
 
@@ -61,9 +68,9 @@ class DataProcess(multiprocessing.Process):
                 requests = self._receive_sequences.get(message, [])
                 print(f"DP triggers: {[r.__name__ for r in requests]}")
                 for request in requests:
-                    self.send_event(
-                        self._transmit_sequences[request], request(*data)
-                    )
+                    if (res := request(*data)) is not None:
+                        if msg := self._transmit_sequences.get(request, None):
+                            self.send_event(msg, res)
             else:
                 time.sleep(self.TIMEOUT_SECS)
 

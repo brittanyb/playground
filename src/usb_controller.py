@@ -37,8 +37,7 @@ class USBDeviceList:
 class HIDEndpointProcess(multiprocessing.Process):
     """Base class that manages a single HID endpoint in its own process."""
 
-    def __init__(
-            self, pad_info: HIDInfo, serial: str):
+    def __init__(self, pad_info: HIDInfo, serial: str):
         super(HIDEndpointProcess, self).__init__()
         self._info = pad_info
         self._serial = serial
@@ -46,17 +45,17 @@ class HIDEndpointProcess(multiprocessing.Process):
         self._device = None
         self.start()
 
+    def terminate(self) -> None:
+        super().terminate()
+
     def run(self) -> None:
         self._device = USBDeviceList.get_device_by_serial(
             self._info.VID, self._info.PID, self._serial
         )
+        if self._device is None:
+            return
         while True:
-            if not self._device:
-                return
-            try:
-                self._process()
-            except Exception as e:
-                raise e
+            self._process()
 
     def _process(self) -> str | None:
         pass
@@ -69,7 +68,7 @@ class HIDEndpointProcess(multiprocessing.Process):
 class HIDReadProcess(HIDEndpointProcess):
     """Child class for reading data from an HID Endpoint."""
 
-    TIMEOUT_MS = 2
+    TIMEOUT_MS = 1
 
     def _process(self) -> str | None:
         self._device: usb.core.Device

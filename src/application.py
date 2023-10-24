@@ -79,7 +79,7 @@ class MainApplication(QtWidgets.QApplication):
         self.window.widget.update_thread.rx_queue = self._data_proc.tx_queue
         self._data_proc.start()
         self.window.widget.update_thread.start()
-        self.aboutToQuit.connect(self._data_proc.terminate)
+        self.aboutToQuit.connect(self.cleanup)
 
     @staticmethod
     def set_opengl_doublebuffering() -> None:
@@ -95,6 +95,11 @@ class MainApplication(QtWidgets.QApplication):
         window_text = QtGui.QPalette.ColorRole.WindowText
         palette.setColor(window_text, QtGui.QColor(*self.FULL_BLACK))
         self.setPalette(palette)
+
+    def cleanup(self) -> None:
+        self._data_proc.terminate()
+        self._data_proc.join()
+        self.quit()
 
 
 if __name__ == "__main__":
