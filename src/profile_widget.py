@@ -80,6 +80,7 @@ class ProfileWidget(QtWidgets.QWidget):
     ) -> QtWidgets.QToolButton:
         button = QtWidgets.QToolButton()
         button.setIcon(self.style().standardIcon(icon))
+        button.setEnabled(False)
         return button
 
     def add_dropdown_item(self, item: str) -> None:
@@ -96,17 +97,6 @@ class ProfileWidget(QtWidgets.QWidget):
 
     def set_dropdown_id(self, name: str) -> None:
         self._dropdown.setCurrentIndex(self._dropdown.findText(name))
-
-    def set_widget_state(self) -> None:
-        if self._dropdown.count() == 0:
-            self._dropdown.setDisabled(True)
-            self._remove.setDisabled(True)
-            self._rename.setDisabled(True)
-            self._save.setDisabled(True)
-            return
-        self._dropdown.setEnabled(True)
-        self._remove.setEnabled(True)
-        self._rename.setEnabled(True)
 
     def set_save_button(self, active: bool) -> None:
         self._save.setEnabled(active)

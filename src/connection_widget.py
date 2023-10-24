@@ -74,11 +74,8 @@ class ConnectionWidget(QtWidgets.QWidget):
         else:
             self._dropdown.setCurrentIndex(0)
 
-    def set_refresh_button(self, active: bool) -> None:
-        if active:
-            self._refresh.setDisabled(True)
-        else:
-            self._refresh.setEnabled(True)
+    def set_refresh_button_state(self, active: bool) -> None:
+        self._refresh.setEnabled(active)
 
     def get_pad_serial(self,) -> str:
         return self._dropdown.currentText()
