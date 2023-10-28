@@ -1,96 +1,66 @@
-import numpy as np
+import dataclasses
+
+Coord = tuple[int, int]
+Colour = tuple[int, int, int]
+BlankData = list[Coord]
+ProfilePanelData = dict[Coord, tuple[int, int]]
+ProfilePadData = dict[Coord, ProfilePanelData]
 
 
-class LEDModel:
-    """State management for an LED."""
+@dataclasses.dataclass
+class Coords:
+    coords: list[Coord]
 
+
+@dataclasses.dataclass
+class LEDEntry:
     B8_MAX = 255
 
-    def __init__(self, coord: tuple[int, int]):
-        self._colour = [0, 0, 0]
-        self._coord = coord
+    red: int = 0
+    green: int = 0
+    blue: int = 0
 
     @property
-    def colour(self) -> list[int]:
-        return self._colour
+    def colour(self) -> Colour:
+        return (self.red, self.green, self.blue)
 
     @colour.setter
-    def colour(self, colour: list[int]):
-        r = int(np.clip(colour[0], 0, self.B8_MAX))
-        g = int(np.clip(colour[1], 0, self.B8_MAX))
-        b = int(np.clip(colour[2], 0, self.B8_MAX))
-        self._colour = [r, g, b]
-
-    @property
-    def coord(self) -> tuple[int, int]:
-        return self._coord
+    def colour(self, red: int, green: int, blue: int):
+        self.red = int(max(0, min(red, self.B8_MAX)))
+        self.green = int(max(0, min(green, self.B8_MAX)))
+        self.blue = int(max(0, min(blue, self.B8_MAX)))
 
 
-class SensorModel:
-    """State management for a sensor."""
-
+@dataclasses.dataclass
+class SensorEntry:
     MAX_ON = 100
     MAX_OFF = MAX_ON - 1
     B12_MAX = 4095
     MAX_BASE = B12_MAX - MAX_ON
 
-    def __init__(self, coord: tuple[int, int]):
-        self._base_value = 0
-        self._current_value = 0
-        self._threshold = 0
-        self._hysteresis = 1
-        self._active = False
-        self._coord = coord
+    base_value: int = 0
+    current_value: int = 0
+    threshold: int = 0
+    hysteresis: int = 1
+    active: bool = False
 
-    @property
-    def base_value(self) -> int:
-        return self._base_value
+    def set_base_value(self, base_value: int):
+        self.base_value = int(max(0, min(base_value, self.B12_MAX)))
 
-    @base_value.setter
-    def base_value(self, base_value: int):
-        self._base_value = int(np.clip(base_value, 0, self.B12_MAX))
+    def set_current_value(self, current_value: int):
+        self.current_value = int(max(0, min(current_value, self.MAX_BASE)))
 
-    @property
-    def current_value(self) -> int:
-        return self._current_value
+    def set_threshold(self, threshold: int):
+        self.threshold = int(max(self.hysteresis, min(threshold, self.MAX_ON)))
 
-    @current_value.setter
-    def current_value(self, current_value: int):
-        self._current_value = int(np.clip(current_value, 0, self.MAX_BASE))
+    def set_hysteresis(self, hysteresis: int):
+        self.hysteresis = int(max(1, min(hysteresis, self.threshold)))
 
-    @property
-    def delta_value(self) -> int:
-        return self._current_value - self._base_value
-
-    @property
-    def threshold(self) -> int:
-        return self._threshold
-
-    @threshold.setter
-    def threshold(self, threshold: int):
-        self._threshold = int(np.clip(
-            threshold, self.hysteresis, self.MAX_ON))
-
-    @property
-    def hysteresis(self) -> int:
-        return self._hysteresis
-
-    @hysteresis.setter
-    def hysteresis(self, hysteresis: int):
-        self._hysteresis = int(np.clip(
-            hysteresis, 1, self.threshold
-        ))
-
-    @property
-    def off_threshold(self):
-        return self.threshold - self.hysteresis
-
-    @property
-    def active(self) -> bool:
-        delta_on = self._threshold - self._base_value
-        delta_off = self._base_value + self.threshold - self._hysteresis
-        pressed = self._current_value >= delta_on
-        released = self._current_value <= delta_off
+    def is_active(self) -> bool:
+        delta_on = self.threshold - self.base_value
+        delta_off = self.base_value + self.threshold - self.hysteresis
+        pressed = self.current_value >= delta_on
+        released = self.current_value <= delta_off
         if ((not self._active) & pressed):
             self._active = True
         elif (self._active & released):
@@ -98,122 +68,105 @@ class SensorModel:
         return self._active
 
     @property
-    def coord(self) -> tuple[int, int]:
-        return self._coord
+    def profile_data(self) -> tuple[int, int]:
+        return (self.threshold, self.hysteresis)
+
+    @profile_data.setter
+    def profile_data(self, data: tuple[int, int]):
+        self.threshold = data[0]
+        self.hysteresis = data[1]
 
 
-class LEDGridModel:
-    """State management for LEDs on a given panel."""
+@dataclasses.dataclass
+class PanelEntry:
+    sensors: dict[Coord, SensorEntry]
+    leds: dict[Coord, LEDEntry]
 
-    GRID_LAYOUT = [
-        [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
-        [0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0],
-        [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
-        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-        [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
-        [0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0],
-        [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0]
-    ]
-
-    def __init__(self):
-        self.leds = []
-        for y_pos in range(len(self.GRID_LAYOUT)):
-            for x_pos in range(len(self.GRID_LAYOUT[0])):
-                if self.GRID_LAYOUT[y_pos][x_pos] != 0:
-                    led = LEDModel((x_pos, y_pos))
-                    self.leds.append(led)
-
-
-class PanelModel:
-    """Encapsulating class for sensors and lights."""
-
-    SENSOR_COORDS = [(1, 0), (1, 1), (0, 0), (0, 1)]
-
-    def __init__(self, panel_coord: tuple[int, int]):
-        self._coord = panel_coord
-        self._sensors = [SensorModel(coord) for coord in self.SENSOR_COORDS]
-        self._led_grid = LEDGridModel()
-
-    def sensor_at_coord(self, coord: tuple[int, int]) -> SensorModel | None:
-        for sensor in self._sensors:
-            if sensor.coord == coord:
-                return sensor
-        return None
+    def __init__(self, sensors: Coords, leds: Coords):
+        self.sensors = {coord: SensorEntry() for coord in sensors.coords}
+        self.leds = {coord: LEDEntry() for coord in leds.coords}
 
     @property
-    def pressed(self) -> bool:
-        _pressed = False
-        for sensor in self._sensors:
-            if sensor.active:
-                _pressed = True
-        return _pressed
+    def profile_data(self) -> ProfilePanelData:
+        return {
+            coord: sensor.profile_data
+            for coord, sensor in self.sensors.items()
+        }
+
+    @profile_data.setter
+    def profile_data(self, panel_data: ProfilePanelData):
+        for coord, data in self.sensors.items():
+            data.profile_data = panel_data[coord]
+
+
+@dataclasses.dataclass
+class PadEntry:
+    blanks: list[Coord]
+    panels: dict[Coord, PanelEntry]
+
+    def __init__(
+            self, blanks: Coords, panels: Coords, sensors: Coords, leds: Coords
+    ):
+        self.blanks = blanks.coords
+        self.panels = {
+            coord: PanelEntry(sensors, leds) for coord in panels.coords
+        }
 
     @property
-    def sensors(self) -> list[SensorModel]:
-        return self._sensors
+    def profile_data(self):
+        return {
+            coord: panel.profile_data for coord, panel in self.panels.items()
+        }
 
-    @property
-    def leds(self) -> list[LEDModel]:
-        return self._led_grid.leds
-
-    @property
-    def coord(self) -> tuple[int, int]:
-        return self._coord
+    @profile_data.setter
+    def profile_data(self, pad_data: ProfilePadData):
+        for coord, data in self.panels.items():
+            data.profile_data = pad_data[coord]
 
 
 class PadModel:
     """Encapsulating class for panels."""
 
-    BLANK_COORDS = [(0, 0), (0, 2), (1, 1), (2, 0), (2, 2)]
-    PANEL_COORDS = [(0, 1), (1, 0), (1, 2), (2, 1)]
+    @staticmethod
+    def led_coords():
+        GRID_LAYOUT = [
+            [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+            [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+            [0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0]
+        ]
+        coords = []
+        for y, row in enumerate(GRID_LAYOUT):
+            for x, value in enumerate(row):
+                if value != 0:
+                    coords.append((x, y))
+        return coords
+
+    BLANKS = Coords([(0, 0), (0, 2), (1, 1), (2, 0), (2, 2)])
+    PANELS = Coords([(0, 1), (1, 0), (1, 2), (2, 1)])
+    SENSORS = Coords([(0, 0), (0, 1), (1, 0), (1, 1)])
+    LEDS = Coords(led_coords())
 
     def __init__(self):
-        self._panels = [PanelModel(coord) for coord in self.PANEL_COORDS]
+        self._model = PadEntry(
+            self.BLANKS, self.PANELS, self.SENSORS, self.LEDS
+        )
 
-    def panel_at_coord(self, coord: tuple[int, int]) -> PanelModel | None:
-        for panel in self._panels:
-            if panel.coord == coord:
-                return panel
-        return None
-
-    @property
-    def panels(self) -> list[PanelModel]:
-        return self._panels
+    def get_model_data(self) -> PadEntry:
+        return self._model
 
     @property
     def profile_data(self) -> dict:
-        data = {}
-        for panel in self.panels:
-            for sensor in panel.sensors:
-                pc = panel.coord
-                sc = sensor.coord
-                key_sub = f"{pc[0]}_{pc[1]}_{sc[0]}_{sc[1]}_"
-                data[key_sub + "base_value"] = sensor.base_value
-                data[key_sub + "threshold"] = sensor.threshold
-                data[key_sub + "hysteresis"] = sensor.hysteresis
-        return data
+        return self._model.profile_data
 
     @profile_data.setter
-    def profile_data(self, profile_data: dict) -> None:
-        for panel in self.panels:
-            for sensor in panel.sensors:
-                pc = panel.coord
-                sc = sensor.coord
-                key_sub = f"{pc[0]}_{pc[1]}_{sc[0]}_{sc[1]}_"
-                sensor.base_value = profile_data.get(
-                    f"{key_sub}base_value",
-                    sensor.base_value
-                )
-                sensor.threshold = profile_data.get(
-                    f"{key_sub}threshold",
-                    sensor.threshold
-                )
-                sensor.hysteresis = profile_data.get(
-                    f"{key_sub}hysteresis",
-                    sensor.hysteresis
-                )
+    def profile_data(self, profile_data: ProfilePadData) -> None:
+        self._model.profile_data = profile_data

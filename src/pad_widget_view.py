@@ -1,8 +1,13 @@
-import numpy as np
 import OpenGL.GL as GL
 import PIL.Image as Image
 
-from pad_model import PadModel, PanelModel, SensorModel, LEDModel
+from pad_model import (
+    PadEntry, PanelEntry, SensorEntry, LEDEntry, Colour, Coord
+)
+
+
+Quad = tuple[int, int, int, int]
+RGBAValue = tuple[int, int, int, int]
 
 
 class TexturePainter:
@@ -48,6 +53,7 @@ class TexturePainter:
 class RectPainter:
     """Painter for a rectangle with a colour gradient."""
 
+    DARK_GRAY = (10, 10, 10, 255)
     MID_GRAY = (100, 100, 100, 255)
     LIGHT_GRAY = (200, 200, 200, 255)
     LIGHT_RED = (150, 0, 0, 175)
@@ -59,9 +65,8 @@ class RectPainter:
 
     @staticmethod
     def draw(
-        x: int, y: int, w: int, h: int,
-        start_col: tuple[int, int, int, int] | list[int],
-        end_col: tuple[int, int, int, int] | list[int] | None = None
+        x: int, y: int, w: int, h: int, start_col: RGBAValue | Colour,
+        end_col: RGBAValue | Colour | None = None
     ) -> None:
         GL.glBegin(GL.GL_QUADS)
         if len(start_col) == 3:
@@ -92,59 +97,56 @@ class PanelPainter:
     LED_SIZE = int(LED_GRID_SIZE / 12 - LED_SPACE)
     RECT_PAD = 5
 
-    def __init__(self, panel: PanelModel):
-        self._offset = (
-            panel.coord[0] * self.SIZE,
-            panel.coord[1] * self.SIZE
-        )
+    def __init__(self, coord: Coord, data: PanelEntry):
+        self._offset = (coord[0] * self.SIZE, coord[1] * self.SIZE)
         self._l_offset = (
             int(self._offset[0] + ((self.SIZE - self.LED_GRID_SIZE) / 2)),
             int(self._offset[1] + ((self.SIZE - self.LED_GRID_SIZE) / 2))
         )
-        self._panel = panel
+        self._coord = coord
+        self._data = data
         self._threshold_rects = {}
+        self.draw()
 
     def draw(self) -> None:
-        for sensor in self._panel.sensors:
-            self.draw_sensor(sensor)
-        for led in self._panel.leds:
-            self.draw_led(led)
+        for coord, data in self._data.sensors.items():
+            self.draw_sensor(coord, data)
+        for coord, data in self._data.leds.items():
+            self.draw_led(coord, data)
 
-    def draw_led(self, led: LEDModel) -> None:
-        x = self._l_offset[0] + (self.LED_SIZE + self.LED_SPACE) * led.coord[0]
-        y = self._l_offset[1] + (self.LED_SIZE + self.LED_SPACE) * led.coord[1]
-        RectPainter.draw(
-            x, y, self.LED_SIZE, self.LED_SIZE, led.colour
-        )
+    def draw_led(self, coord: Coord, data: LEDEntry) -> None:
+        x = self._l_offset[0] + (self.LED_SIZE + self.LED_SPACE) * coord[0]
+        y = self._l_offset[1] + (self.LED_SIZE + self.LED_SPACE) * coord[1]
+        RectPainter.draw(x, y, self.LED_SIZE, self.LED_SIZE, data.colour)
 
-    def draw_sensor(self, sensor: SensorModel) -> None:
-        if (sensor.coord[0] == 0):
+    def draw_sensor(self, coord: Coord, data: SensorEntry) -> None:
+        if (coord[0] == 0):
             x = self._offset[0] + self.SEN_SPACE
         else:
             x = self._offset[0] + self.SIZE - self.SEN_WIDTH - self.SEN_SPACE
-        if (sensor.coord[1] == 0):
+        if (coord[1] == 0):
             y = self._offset[1] + self.SIZE - self.SEN_HEIGHT - self.SEN_SPACE
         else:
             y = self._offset[1] + self.SEN_SPACE
-        if sensor.active:
+        self.store_rect(coord, data, x, y)
+        if data.active:
             s_col = RectPainter.LIGHT_GREEN
             e_col = RectPainter.DARK_GREEN
         else:
             s_col = RectPainter.LIGHT_BLUE
             e_col = RectPainter.DARK_BLUE
+        delta = data.current_value - data.base_value
+        off = data.threshold - data.hysteresis
+        range = data.threshold - off
         RectPainter.draw(
             x, y, self.SEN_WIDTH, self.SEN_HEIGHT,
             RectPainter.LIGHT_GRAY, RectPainter.MID_GRAY
         )
+        RectPainter.draw(x, y, self.SEN_WIDTH, delta, s_col, e_col)
         RectPainter.draw(
-            x, y, self.SEN_WIDTH, sensor.delta_value, s_col, e_col
-        )
-        RectPainter.draw(
-            x, y + sensor.off_threshold, self.SEN_WIDTH,
-            sensor.threshold - sensor.off_threshold,
+            x, y + off, self.SEN_WIDTH, range,
             RectPainter.LIGHT_RED, RectPainter.DARK_RED
         )
-        self.store_rect(sensor, x, y)
 
     @property
     def threshold_rects(
@@ -152,43 +154,51 @@ class PanelPainter:
     ) -> dict[tuple[int, int], dict[tuple[int, int], list[int]]]:
         return self._threshold_rects
 
-    def store_rect(self, sensor: SensorModel, x: int, y: int) -> None:
-        pc = self._panel.coord
-        sc = sensor.coord
-        x1 = np.maximum(x - self.RECT_PAD, 0)
-        y1 = np.maximum(
-            y + sensor.threshold - sensor.hysteresis - self.RECT_PAD, 0
-        )
-        x2 = np.maximum(x + self.SEN_WIDTH + self.RECT_PAD, 0)
-        y2 = np.maximum(y + sensor.threshold + self.RECT_PAD, 0)
-        if pc not in self._threshold_rects:
-            self._threshold_rects[pc] = {}
-        self._threshold_rects[pc][sc] = [x1, y1, x2, y2]
+    def store_rect(
+            self, coord: Coord, data: SensorEntry, x: int, y: int
+    ) -> None:
+        x1 = max(x - self.RECT_PAD, 0)
+        y1 = max(y + data.threshold - data.hysteresis - self.RECT_PAD, 0)
+        x2 = max(x + self.SEN_WIDTH + self.RECT_PAD, 0)
+        y2 = max(y + data.threshold + self.RECT_PAD, 0)
+        if not self._coord in self._threshold_rects:
+            self._threshold_rects[self._coord] = {}
+        self._threshold_rects[self._coord][coord] = [x1, y1, x2, y2]
 
 
 class PadPainter:
     """Painter for a dance pad."""
 
     SIZE = PanelPainter.SIZE * 3
+    GLOSS_PATH = "../assets/gloss-texture.jpg"
+    METAL_PATH = "../assets/brushed-metal-texture.jpg"
 
-    def __init__(self, model: PadModel):
-        gloss = TexturePainter.load("../assets/gloss-texture.jpg")
+    def __init__(self, pad_data: PadEntry):
+        gloss = TexturePainter.load(self.GLOSS_PATH)
         self.gloss_id = TexturePainter.set_data(*gloss)
-        metal = TexturePainter.load("../assets/brushed-metal-texture.jpg")
+        metal = TexturePainter.load(self.METAL_PATH)
         self.metal_id = TexturePainter.set_data(*metal)
-        self.model = model
-        self.painters = [PanelPainter(panel) for panel in model.panels]
+        self._pad_data = pad_data
+        self.painters = [
+            PanelPainter(coord, data)
+            for coord, data in pad_data.panels.items()
+        ]
 
     def draw_base(self) -> None:
-        size = PanelPainter.SIZE
-        coords = [(x * size, y * size) for x, y in self.model.BLANK_COORDS]
-        for x, y in coords:
-            TexturePainter.draw(self.metal_id, x, y, size, 0.5)
-        TexturePainter.draw(self.gloss_id, 0, 0, self.SIZE, 0.2)
+        RectPainter.draw(0, 0, self.SIZE, self.SIZE, RectPainter.DARK_GRAY)
+        for blank in self._pad_data.blanks:
+            x_pos = blank[0] * PanelPainter.SIZE
+            y_pos = blank[1] * PanelPainter.SIZE
+            TexturePainter.draw(
+                self.metal_id, x_pos, y_pos, PanelPainter.SIZE, 0.5
+            )
 
     def draw_panel_data(self) -> None:
         for painter in self.painters:
             painter.draw()
+
+    def draw_overlay(self) -> None:
+        TexturePainter.draw(self.gloss_id, 0, 0, self.SIZE, 0.2)
 
 
 class PadWidgetView:
@@ -196,11 +206,12 @@ class PadWidgetView:
 
     SIZE = PadPainter.SIZE
 
-    def init_painting(self, model: PadModel) -> None:
+    def init_painting(self, frame_data: PadEntry) -> None:
+        self._frame_data = frame_data
         GL.glEnable(GL.GL_BLEND)
         GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
         GL.glOrtho(0, self.SIZE, 0, self.SIZE, -1, 1)
-        self.painter = PadPainter(model)
+        self.painter = PadPainter(self._frame_data)
 
     def handle_resize_event(self, w: int, h: int) -> None:
         GL.glViewport(0, 0, w, h)
@@ -213,23 +224,23 @@ class PadWidgetView:
 
     def draw_widget(self) -> None:
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
-        self.painter.draw_panel_data()
         self.painter.draw_base()
+        self.painter.draw_panel_data()
+        self.painter.draw_overlay()
 
     @property
-    def threshold_rects(
-        self
-    ) -> dict[tuple[int, int], dict[tuple[int, int], list[int]]]:
+    def threshold_rects(self) -> dict[tuple, dict]:
         rects = {}
         for panel_painter in self.painter.painters:
             rects.update(panel_painter.threshold_rects)
         return rects
 
-    def mouse_in_threshold_rect(
-        self, x: int, y: int
-    ) -> tuple[tuple[int, int], tuple[int, int]] | None:
+    def mouse_in_threshold_rect(self, x: int, y: int) -> tuple | None:
         for panel_coord, sensor_dict in self.threshold_rects.items():
             for sensor_coord, [x1, y1, x2, y2] in sensor_dict.items():
                 if x1 <= x <= x2 and y1 <= y <= y2:
                     return panel_coord, sensor_coord
         return None
+
+    def set_frame_data(self, frame_data: PadEntry) -> None:
+        self._frame_data = frame_data
