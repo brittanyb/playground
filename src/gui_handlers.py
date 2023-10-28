@@ -1,4 +1,5 @@
 from connection_widget import ConnectionWidget
+from pad_model import PadEntry
 from pad_widget import PadWidget
 from profile_widget import ProfileWidget
 
@@ -34,3 +35,6 @@ class GUIHandlers:
         self._connection_widget.set_dropdown_state(not connected)
         self._connection_widget.set_connect_button_icon(not connected)
         self._connection_widget.set_refresh_button_state(not connected)
+
+    def frame_data_received(self, frame_data: PadEntry) -> None:
+        self._pad_widget.update(frame_data)

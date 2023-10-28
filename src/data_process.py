@@ -23,7 +23,11 @@ class DataProcess(multiprocessing.Process):
         self._receive_sequences = {
             WidgetMessage.INIT: [
                 self._pad_controller.get_all_pads,
-                self._profile_controller.get_profile_names
+                self._profile_controller.get_profile_names,
+                self._pad_model.get_model_data
+            ],
+            WidgetMessage.FRAME_READY: [
+                self._pad_model.get_model_data
             ],
             WidgetMessage.CONNECT: [
                 self._pad_controller.toggle_pad_connection
@@ -44,7 +48,9 @@ class DataProcess(multiprocessing.Process):
             self._profile_controller.get_profile_names:
                 DataProcessMessage.PROFILE_NAMES,
             self._pad_controller.toggle_pad_connection:
-                DataProcessMessage.PAD_CONNECTED
+                DataProcessMessage.PAD_CONNECTED,
+            self._pad_model.get_model_data:
+                DataProcessMessage.FRAME_DATA,
         }
 
     def create_data_managers(self):
@@ -55,7 +61,6 @@ class DataProcess(multiprocessing.Process):
         self._profile_controller = ProfileController(self._pad_model)
 
     def send_event(self, message: str, data: ... = None):
-        print(f"DP sends: {message}: {data}")
         self._tx_queue.put_nowait((message, data))
 
     def run(self) -> None:
@@ -66,7 +71,6 @@ class DataProcess(multiprocessing.Process):
             if not self._rx_queue.empty():
                 message, data = self._rx_queue.get_nowait()
                 requests = self._receive_sequences.get(message, [])
-                print(f"DP triggers: {[r.__name__ for r in requests]}")
                 for request in requests:
                     if (res := request(*data)) is not None:
                         if msg := self._transmit_sequences.get(request, None):

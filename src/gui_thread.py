@@ -37,7 +37,8 @@ class GUIThread(QtCore.QThread):
     def create_widget_event_message_hooks(self) -> None:
         hooks = {
             self._connection_widget.CONNECT_CLICKED: WidgetMessage.CONNECT,
-            self._connection_widget.REFRESH_CLICKED: WidgetMessage.REFRESH
+            self._connection_widget.REFRESH_CLICKED: WidgetMessage.REFRESH,
+            self._pad_widget.FRAME_READY: WidgetMessage.FRAME_READY
         }
         for signal, message in hooks.items():
             signal.connect(lambda message=message: self.send_event(message))
@@ -47,21 +48,24 @@ class GUIThread(QtCore.QThread):
             WidgetMessage.INIT: [],
             WidgetMessage.CONNECT: [self._connection_widget.get_pad_serial],
             WidgetMessage.REFRESH: [],
-            WidgetMessage.QUIT: []
+            WidgetMessage.QUIT: [],
+            WidgetMessage.FRAME_READY: [],
         }
 
     def create_widget_update_hooks(self) -> None:
         self._process_requests = {
             DataProcessMessage.ALL_PADS: self._signals.ALL_PADS,
             DataProcessMessage.PROFILE_NAMES: self._signals.PROFILE_NAMES,
-            DataProcessMessage.PAD_CONNECTED: self._signals.PAD_CONNECTED
+            DataProcessMessage.PAD_CONNECTED: self._signals.PAD_CONNECTED,
+            DataProcessMessage.FRAME_DATA: self._signals.FRAME_DATA
         }
 
     def create_widget_handler_hooks(self) -> None:
         self._signal_handlers = {
             self._signals.ALL_PADS: self._handlers.all_pads_received,
             self._signals.PROFILE_NAMES: self._handlers.profile_names_received,
-            self._signals.PAD_CONNECTED: self._handlers.pad_connected
+            self._signals.PAD_CONNECTED: self._handlers.pad_connected,
+            self._signals.FRAME_DATA: self._handlers.frame_data_received
         }
         for signal, handler in self._signal_handlers.items():
             signal.connect(handler)
@@ -70,7 +74,6 @@ class GUIThread(QtCore.QThread):
         data = []
         for request in self._data_requests[message]:
             data.append(request())
-        print(f"GUI sends: {message=}, {data=}")
         if self._tx_queue:
             self._tx_queue.put_nowait((message, data))
 
@@ -79,8 +82,6 @@ class GUIThread(QtCore.QThread):
         while True:
             if self._rx_queue and not self._rx_queue.empty():
                 message, data = self._rx_queue.get_nowait()
-                signal = self._process_requests[message]
-                print(f"GUI calls: {self._signal_handlers[signal].__name__}")
                 self._process_requests[message].emit(data)
             else:
                 time.sleep(self.TIMEOUT_SECS)
