@@ -2,7 +2,7 @@ import PySide6.QtCore as QtCore
 import PySide6.QtGui as QtGui
 import PySide6.QtOpenGLWidgets as QtOpenGLWidgets
 
-from pad_model import PadModel, PadEntry
+from pad_model import PadModel, PadEntry, Coord
 from pad_widget_view import PadWidgetView
 
 
@@ -34,8 +34,8 @@ class PadWidget(QtOpenGLWidgets.QOpenGLWidget):
 
     def update(self, frame_data: PadEntry) -> None:
         self.view.set_frame_data(frame_data)
-        self.FRAME_READY.emit()
         super().update()
+        self.FRAME_READY.emit()
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         m_x = event.x()
@@ -53,14 +53,9 @@ class PadWidget(QtOpenGLWidgets.QOpenGLWidget):
             self._button is None
         ):
             return
-        return
-        mouse_diff = m_y - self._last_mouse_y
-        if self._button == QtCore.Qt.MouseButton.LeftButton:
-            sensor.threshold += mouse_diff
-        elif self._button == QtCore.Qt.MouseButton.RightButton:
-            sensor.hysteresis -= mouse_diff
-        self.NEW_SENS_VALUE.emit()
+        self._mouse_y = m_y - self._last_mouse_y
         self._last_mouse_y = m_y
+        self.NEW_SENS_VALUE.emit()
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         if (self._rect_coord):
@@ -71,3 +66,14 @@ class PadWidget(QtOpenGLWidgets.QOpenGLWidget):
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
         self._dragging = False
         event.accept()
+
+    def get_update_data(self) -> tuple[int, int, tuple[Coord, Coord]] | None:
+        if self._rect_coord is None:
+            return None
+        if self._button == QtCore.Qt.MouseButton.LeftButton:
+            update_id = 0
+        elif self._button == QtCore.Qt.MouseButton.RightButton:
+            update_id = 1
+        else:
+            update_id = 2
+        return (update_id, self._mouse_y, self._rect_coord)

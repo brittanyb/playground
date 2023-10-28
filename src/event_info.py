@@ -17,6 +17,7 @@ class WidgetMessage:
     INIT = "GUI_init_window"
     QUIT = "GUI_quit"
     FRAME_READY = "GUI_frame_ready"
+    SENSOR_UPDATE = "GUI_sensor_update"
 
 
 class DataProcessMessage:

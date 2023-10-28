@@ -38,6 +38,9 @@ class DataProcess(multiprocessing.Process):
             ],
             WidgetMessage.QUIT: [
                 self._pad_controller.disconnect_pad
+            ],
+            WidgetMessage.SENSOR_UPDATE: [
+                self._pad_model.set_sensor
             ]
         }
 

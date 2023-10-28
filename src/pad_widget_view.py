@@ -8,6 +8,7 @@ from pad_model import (
 
 Quad = tuple[int, int, int, int]
 RGBAValue = tuple[int, int, int, int]
+RectCoord = tuple[Coord, Coord]
 
 
 class TexturePainter:
@@ -229,18 +230,18 @@ class PadWidgetView:
         self.painter.draw_overlay()
 
     @property
-    def threshold_rects(self) -> dict[tuple, dict]:
+    def threshold_rects(self) -> dict[Coord, dict]:
         rects = {}
         for panel_painter in self.painter.painters:
             rects.update(panel_painter.threshold_rects)
         return rects
 
-    def mouse_in_threshold_rect(self, x: int, y: int) -> tuple | None:
+    def mouse_in_threshold_rect(self, x: int, y: int) -> RectCoord | None:
         for panel_coord, sensor_dict in self.threshold_rects.items():
             for sensor_coord, [x1, y1, x2, y2] in sensor_dict.items():
                 if x1 <= x <= x2 and y1 <= y <= y2:
-                    return panel_coord, sensor_coord
+                    return (panel_coord, sensor_coord)
         return None
 
     def set_frame_data(self, frame_data: PadEntry) -> None:
-        self._frame_data = frame_data
+        self._frame_data.set_frame_data(frame_data)

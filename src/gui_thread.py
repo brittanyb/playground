@@ -38,7 +38,8 @@ class GUIThread(QtCore.QThread):
         hooks = {
             self._connection_widget.CONNECT_CLICKED: WidgetMessage.CONNECT,
             self._connection_widget.REFRESH_CLICKED: WidgetMessage.REFRESH,
-            self._pad_widget.FRAME_READY: WidgetMessage.FRAME_READY
+            self._pad_widget.FRAME_READY: WidgetMessage.FRAME_READY,
+            self._pad_widget.NEW_SENS_VALUE: WidgetMessage.SENSOR_UPDATE
         }
         for signal, message in hooks.items():
             signal.connect(lambda message=message: self.send_event(message))
@@ -50,6 +51,7 @@ class GUIThread(QtCore.QThread):
             WidgetMessage.REFRESH: [],
             WidgetMessage.QUIT: [],
             WidgetMessage.FRAME_READY: [],
+            WidgetMessage.SENSOR_UPDATE: [self._pad_widget.get_update_data]
         }
 
     def create_widget_update_hooks(self) -> None:
