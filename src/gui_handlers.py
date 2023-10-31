@@ -66,8 +66,7 @@ class GUIHandlers:
             return
         name = self._profile_widget.get_pad_name()
         self._profile_widget.remove_dropdown_item(name)
-        if (id := self._profile_widget.get_dropdown_id()) > 0:
-            self._profile_widget.set_dropdown_id(id - 1)
+        self._profile_widget.set_dropdown_id(0)
         self._profile_set_widget_states()
 
     def _profile_set_widget_states(self) -> None:

@@ -43,8 +43,8 @@ class DataProcess(multiprocessing.Process):
                 self._pad_model.set_sensor
             ],
             WidgetMessage.NEW: [
-                self._profile_controller.create_new_profile,
-                self._pad_model.set_default
+                self._pad_model.set_default,
+                self._profile_controller.create_new_profile
             ],
             WidgetMessage.SAVE: [
                 self._profile_controller.save_user_profile,
