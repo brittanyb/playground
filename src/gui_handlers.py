@@ -52,6 +52,7 @@ class GUIHandlers:
 
     def profile_renamed(self, names: tuple[str, str]) -> None:
         self._profile_widget.rename_dropdown_item(names)
+        self._profile_widget.set_save_button(False)
 
     def profile_new(self, name: str) -> None:
         if not self._profile_widget.get_num_dropdown_items() > 0:
