@@ -51,6 +51,7 @@ class ProfileController:
             pickle.dump(data, f)
         self._load_profile_map()
         self._saved_data = data[1]
+        self._model.set_saved()
         return True
 
     def load_user_profile(self, name: str) -> str:
