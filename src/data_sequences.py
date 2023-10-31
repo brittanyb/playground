@@ -1,5 +1,3 @@
-import dataclasses
-
 from event_info import DataProcessMessage, WidgetMessage
 from led_data_handler import LEDDataHandler
 from pad_model import PadModel
@@ -8,7 +6,6 @@ from reflex_controller import ReflexController
 from sensor_data_handler import SensorDataHandler
 
 
-@dataclasses.dataclass
 class Sequences:
     _pad_controller = ReflexController()
     _pad_model = PadModel()
