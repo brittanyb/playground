@@ -98,6 +98,7 @@ class PanelEntry:
 
     @profile_data.setter
     def profile_data(self, panel_data: ProfilePanelData):
+        self._profile_set = False
         for coord, data in self.sensors.items():
             data.profile_data = panel_data[coord]
 
@@ -116,6 +117,7 @@ class PanelEntry:
 class PadEntry:
     blanks: list[Coord]
     panels: dict[Coord, PanelEntry]
+    updated: bool
 
     def __init__(
             self, blanks: Coords, panels: Coords, sensors: Coords, leds: Coords
@@ -124,6 +126,7 @@ class PadEntry:
         self.panels = {
             coord: PanelEntry(sensors, leds) for coord in panels.coords
         }
+        self.updated = False
 
     @property
     def profile_data(self):
@@ -182,16 +185,22 @@ class PadModel:
         return self._model
 
     def set_sensor(self, data: tuple[int, int, tuple[Coord, Coord]]) -> None:
+        self._model.updated = True
         sensor = self._model.panels[data[2][0]].sensors[data[2][1]]
         if data[0] == 0:
             sensor.set_threshold(sensor.threshold + data[1])
         elif data[0] == 1:
             sensor.set_hysteresis(sensor.hysteresis - data[1])
 
+    def set_saved(self) -> None:
+        self._model.updated = False
+
     @property
     def profile_data(self) -> dict:
+        self._model.updated = False
         return self._model.profile_data
 
     @profile_data.setter
     def profile_data(self, profile_data: ProfilePadData) -> None:
+        self._model.updated = False
         self._model.profile_data = profile_data

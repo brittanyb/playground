@@ -21,9 +21,11 @@ class ProfileNameDialog(QtWidgets.QDialog):
         layout.addWidget(accept)
         self.setLayout(layout)
 
-    def get_name(self) -> str | None:
+    def get_name(self) -> tuple[bool, str]:
         if self.exec_() == QtWidgets.QDialog.DialogCode.Accepted:
-            return self.name_input.text()
+            if name := self.name_input.text():
+                return (True, name)
+        return (False, "")
 
 
 class ProfileWidget(QtWidgets.QWidget):
@@ -80,11 +82,13 @@ class ProfileWidget(QtWidgets.QWidget):
     ) -> QtWidgets.QToolButton:
         button = QtWidgets.QToolButton()
         button.setIcon(self.style().standardIcon(icon))
-        button.setEnabled(False)
         return button
 
     def add_dropdown_item(self, item: str) -> None:
         self._dropdown.addItem(item)
+
+    def remove_dropdown_item(self, item: str) -> None:
+        self._dropdown.removeItem(self._dropdown.findText(item))
 
     def set_dropdown_state(self, active: bool) -> None:
         self._dropdown.setEnabled(active)
@@ -95,16 +99,35 @@ class ProfileWidget(QtWidgets.QWidget):
         self._dropdown.clear()
         self._dropdown.addItems(items)
 
-    def set_dropdown_id(self, name: str) -> None:
+    def get_num_dropdown_items(self) -> int:
+        return self._dropdown.count()
+
+    def get_dropdown_id(self) -> int:
+        return self._dropdown.currentIndex()
+
+    def set_dropdown_id(self, id: int) -> None:
+        self._dropdown.setCurrentIndex(id)
+
+    def set_dropdown_by_text(self, name: str) -> None:
         self._dropdown.setCurrentIndex(self._dropdown.findText(name))
+
+    def rename_dropdown_item(self, names: tuple[str, str]) -> None:
+        self._dropdown.setItemText(self._dropdown.findText(names[0]), names[1])
 
     def set_save_button(self, active: bool) -> None:
         self._save.setEnabled(active)
 
-    def get_profile_name(self) -> str | None:
-        if not self._dropdown.isEnabled():
-            return
+    def set_rename_button(self, active: bool) -> None:
+        self._rename.setEnabled(active)
+
+    def set_remove_button(self, active: bool) -> None:
+        self._remove.setEnabled(active)
+
+    def get_profile_name(self) -> tuple[bool, str]:
         return ProfileNameDialog().get_name()
 
     def get_pad_name(self) -> str:
         return self._dropdown.currentText()
+
+    def set_new_button(self, active: bool) -> None:
+        self._new.setEnabled(active)

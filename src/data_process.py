@@ -23,8 +23,8 @@ class DataProcess(multiprocessing.Process):
         self._receive_sequences = {
             WidgetMessage.INIT: [
                 self._pad_controller.get_all_pads,
-                self._profile_controller.get_profile_names,
-                self._pad_model.get_model_data
+                self._profile_controller.initialise_profile,
+                self._pad_model.get_model_data,
             ],
             WidgetMessage.FRAME_READY: [
                 self._pad_model.get_model_data
@@ -41,6 +41,22 @@ class DataProcess(multiprocessing.Process):
             ],
             WidgetMessage.SENSOR_UPDATE: [
                 self._pad_model.set_sensor
+            ],
+            WidgetMessage.NEW: [
+                self._profile_controller.create_new_profile
+            ],
+            WidgetMessage.SAVE: [
+                self._profile_controller.save_user_profile,
+                lambda _=None: self._pad_model.set_saved()
+            ],
+            WidgetMessage.SELECT: [
+                self._profile_controller.load_user_profile
+            ],
+            WidgetMessage.RENAME: [
+                self._profile_controller.rename_user_profile
+            ],
+            WidgetMessage.REMOVE: [
+                self._profile_controller.remove_user_profile,
             ]
         }
 
@@ -48,12 +64,22 @@ class DataProcess(multiprocessing.Process):
         self._transmit_sequences = {
             self._pad_controller.get_all_pads:
                 DataProcessMessage.ALL_PADS,
-            self._profile_controller.get_profile_names:
+            self._profile_controller.initialise_profile:
                 DataProcessMessage.PROFILE_NAMES,
             self._pad_controller.toggle_pad_connection:
                 DataProcessMessage.PAD_CONNECTED,
             self._pad_model.get_model_data:
                 DataProcessMessage.FRAME_DATA,
+            self._profile_controller.create_new_profile:
+                DataProcessMessage.PROFILE_NEW,
+            self._profile_controller.save_user_profile:
+                DataProcessMessage.PROFILE_SAVED,
+            self._profile_controller.load_user_profile:
+                DataProcessMessage.PROFILE_LOADED,
+            self._profile_controller.rename_user_profile:
+                DataProcessMessage.PROFILE_RENAMED,
+            self._profile_controller.remove_user_profile:
+                DataProcessMessage.PROFILE_REMOVED
         }
 
     def create_data_managers(self):

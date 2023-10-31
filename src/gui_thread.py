@@ -39,10 +39,15 @@ class GUIThread(QtCore.QThread):
             self._connection_widget.CONNECT_CLICKED: WidgetMessage.CONNECT,
             self._connection_widget.REFRESH_CLICKED: WidgetMessage.REFRESH,
             self._pad_widget.FRAME_READY: WidgetMessage.FRAME_READY,
-            self._pad_widget.NEW_SENS_VALUE: WidgetMessage.SENSOR_UPDATE
+            self._pad_widget.NEW_SENS_VALUE: WidgetMessage.SENSOR_UPDATE,
+            self._profile_widget.NEW_CLICKED: WidgetMessage.NEW,
+            self._profile_widget.SAVE_CLICKED: WidgetMessage.SAVE,
+            self._profile_widget.REMOVE_CLICKED: WidgetMessage.REMOVE,
+            self._profile_widget.RENAME_CLICKED: WidgetMessage.RENAME,
+            self._profile_widget.DROPDOWN_ACTIVATED: WidgetMessage.SELECT
         }
         for signal, message in hooks.items():
-            signal.connect(lambda message=message: self.send_event(message))
+            signal.connect(lambda *, message=message: self.send_event(message))
 
     def create_widget_data_hooks(self) -> None:
         self._data_requests = {
@@ -51,7 +56,15 @@ class GUIThread(QtCore.QThread):
             WidgetMessage.REFRESH: [],
             WidgetMessage.QUIT: [],
             WidgetMessage.FRAME_READY: [],
-            WidgetMessage.SENSOR_UPDATE: [self._pad_widget.get_update_data]
+            WidgetMessage.SENSOR_UPDATE: [self._pad_widget.get_update_data],
+            WidgetMessage.NEW: [],
+            WidgetMessage.SAVE: [self._profile_widget.get_pad_name],
+            WidgetMessage.REMOVE: [self._profile_widget.get_pad_name],
+            WidgetMessage.RENAME: [
+                self._profile_widget.get_pad_name,
+                self._profile_widget.get_profile_name
+            ],
+            WidgetMessage.SELECT: [self._profile_widget.get_pad_name]
         }
 
     def create_widget_update_hooks(self) -> None:
@@ -59,7 +72,12 @@ class GUIThread(QtCore.QThread):
             DataProcessMessage.ALL_PADS: self._signals.ALL_PADS,
             DataProcessMessage.PROFILE_NAMES: self._signals.PROFILE_NAMES,
             DataProcessMessage.PAD_CONNECTED: self._signals.PAD_CONNECTED,
-            DataProcessMessage.FRAME_DATA: self._signals.FRAME_DATA
+            DataProcessMessage.FRAME_DATA: self._signals.FRAME_DATA,
+            DataProcessMessage.PROFILE_SAVED: self._signals.PROFILE_SAVED,
+            DataProcessMessage.PROFILE_LOADED: self._signals.PROFILE_LOADED,
+            DataProcessMessage.PROFILE_NEW: self._signals.PROFILE_NEW,
+            DataProcessMessage.PROFILE_RENAMED: self._signals.PROFILE_RENAMED,
+            DataProcessMessage.PROFILE_REMOVED: self._signals.PROFILE_REMOVED
         }
 
     def create_widget_handler_hooks(self) -> None:
@@ -67,7 +85,12 @@ class GUIThread(QtCore.QThread):
             self._signals.ALL_PADS: self._handlers.all_pads_received,
             self._signals.PROFILE_NAMES: self._handlers.profile_names_received,
             self._signals.PAD_CONNECTED: self._handlers.pad_connected,
-            self._signals.FRAME_DATA: self._handlers.frame_data_received
+            self._signals.FRAME_DATA: self._handlers.frame_data_received,
+            self._signals.PROFILE_SAVED: self._handlers.profile_saved,
+            self._signals.PROFILE_LOADED: self._handlers.profile_loaded,
+            self._signals.PROFILE_RENAMED: self._handlers.profile_renamed,
+            self._signals.PROFILE_NEW: self._handlers.profile_new,
+            self._signals.PROFILE_REMOVED: self._handlers.profile_removed
         }
         for signal, handler in self._signal_handlers.items():
             signal.connect(handler)
