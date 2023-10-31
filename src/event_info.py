@@ -1,9 +1,3 @@
-import PySide6.QtWidgets as QtWidgets
-import PySide6.QtCore as QtCore
-
-from pad_model import PadEntry
-
-
 class WidgetMessage:
     """Message string to pass over queue from Widget event to Data process."""
 
@@ -32,20 +26,3 @@ class DataProcessMessage:
     PROFILE_LOADED = "DP_profile_loaded"
     PROFILE_RENAMED = "DP_profile_renamed"
     PROFILE_REMOVED = "DP_profile_removed"
-
-
-class DataReceiveSignaller(QtWidgets.QWidget):
-    """Signal to emit when GUI event loop receives data from Data process."""
-
-    ALL_PADS = QtCore.Signal(list)
-    PROFILE_NAMES = QtCore.Signal(list)
-    PAD_CONNECTED = QtCore.Signal(bool)
-    FRAME_DATA = QtCore.Signal(PadEntry)
-    PROFILE_NEW = QtCore.Signal(str)
-    PROFILE_SAVED = QtCore.Signal(bool)
-    PROFILE_LOADED = QtCore.Signal(str)
-    PROFILE_RENAMED = QtCore.Signal(tuple)
-    PROFILE_REMOVED = QtCore.Signal(bool)
-
-    def __init__(self):
-        super(DataReceiveSignaller, self).__init__()

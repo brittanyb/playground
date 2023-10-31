@@ -5,11 +5,9 @@ import PySide6.QtGui as QtGui
 import PySide6.QtWidgets as QtWidgets
 import qdarktheme
 
-from connection_widget import ConnectionWidget
 from data_process import DataProcess
 from gui_thread import GUIThread
-from profile_widget import ProfileWidget
-from pad_widget import PadWidget
+from gui_widgets import Widgets
 
 
 class MainWidget(QtWidgets.QWidget):
@@ -19,22 +17,18 @@ class MainWidget(QtWidgets.QWidget):
 
     def __init__(self):
         super(MainWidget, self).__init__()
-        self._pad_connection = ConnectionWidget()
-        self._pad_profile = ProfileWidget()
-        self._pad_widget = PadWidget()
-        self.update_thread = GUIThread(
-            self._pad_connection, self._pad_widget, self._pad_profile
-        )
+        widgets = Widgets()
+        self.update_thread = GUIThread(widgets)
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
         splitter.setChildrenCollapsible(False)
         splitter.setStyleSheet(self.STYLESHEET)
-        splitter.addWidget(self._pad_connection)
-        splitter.addWidget(self._pad_profile)
+        splitter.addWidget(widgets.connection_widget)
+        splitter.addWidget(widgets.profile_widget)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(splitter)
-        layout.addWidget(self._pad_widget)
+        layout.addWidget(widgets.pad_widget)
         self.setLayout(layout)
 
 
