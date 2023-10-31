@@ -177,9 +177,7 @@ class PadModel:
     LEDS = Coords(led_coords())
 
     def __init__(self):
-        self._model = PadEntry(
-            self.BLANKS, self.PANELS, self.SENSORS, self.LEDS
-        )
+        self.set_default()
 
     def get_model_data(self) -> PadEntry:
         return self._model
@@ -194,6 +192,11 @@ class PadModel:
 
     def set_saved(self) -> None:
         self._model.updated = False
+
+    def set_default(self) -> None:
+        self._model = PadEntry(
+            self.BLANKS, self.PANELS, self.SENSORS, self.LEDS
+        )
 
     @property
     def profile_data(self) -> dict:
