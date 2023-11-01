@@ -55,7 +55,7 @@ class MainWindow(QtWidgets.QMainWindow):
 class MainApplication(QtWidgets.QApplication):
     """Application entry point for Pad GUI."""
 
-    FULL_BLACK = (255, 255, 255)
+    FULL_WHITE = (255, 255, 255)
     REFLEX_PURPLE = {"primary": "#ad02ff"}
 
     ICON_PATH = "../assets/favicon.ico"
@@ -87,7 +87,7 @@ class MainApplication(QtWidgets.QApplication):
         qdarktheme.setup_theme(custom_colors=dict(self.REFLEX_PURPLE))
         palette = self.palette()
         window_text = QtGui.QPalette.ColorRole.WindowText
-        palette.setColor(window_text, QtGui.QColor(*self.FULL_BLACK))
+        palette.setColor(window_text, QtGui.QColor(*self.FULL_WHITE))
         self.setPalette(palette)
 
     def cleanup(self) -> None:

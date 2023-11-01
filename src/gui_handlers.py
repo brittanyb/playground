@@ -21,6 +21,10 @@ class GUIHandlers:
         self._connection_widget.set_connect_button_state(False)
         self._connection_widget.set_refresh_button_state(False)
         self._profile_widget.set_save_button(False)
+        self._profile_widget.set_new_button(False)
+        self._profile_widget.set_remove_button(False)
+        self._profile_widget.set_rename_button(False)
+        self._profile_widget.set_dropdown_state(False)
 
     def all_pads_received(self, all_pads: list[str]) -> None:
         pads_available = len(all_pads) > 0
