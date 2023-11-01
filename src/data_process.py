@@ -20,6 +20,8 @@ class DataProcess(multiprocessing.Process):
     def run(self) -> None:
         sequences = Sequences()
         while True:
+            sequences.handle_sensor_data()
+            sequences.handle_light_data()
             if not self._rx_queue.empty():
                 message, data = self._rx_queue.get_nowait()
                 requests = sequences.receive.get(message, [])

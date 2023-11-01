@@ -1,3 +1,5 @@
+from led_data_handler import LEDDataHandler
+from sensor_data_handler import SensorDataHandler
 from usb_controller import USBDeviceList, HIDReadProcess, HIDWriteProcess
 from usb_info import ReflexV2Info
 
@@ -9,6 +11,8 @@ class ReflexPadInstance:
         self._serial = serial
         self._sensors_process = HIDReadProcess(info, serial)
         self._lights_process = HIDWriteProcess(info, serial)
+        self._sensor_handler = SensorDataHandler(self._sensors_process.queue)
+        self._light_handler = LEDDataHandler(self._lights_process.queue)
 
     def disconnect(self) -> None:
         self._sensors_process.terminate()
@@ -17,6 +21,12 @@ class ReflexPadInstance:
     @property
     def serial(self) -> str:
         return self._serial
+
+    def handle_sensor_data(self):
+        self._sensor_handler.take_sample()
+
+    def handle_light_data(self):
+        self._light_handler.give_sample()
 
 
 class ReflexController:
@@ -56,3 +66,9 @@ class ReflexController:
 
     def get_all_pads(self) -> list[str | None]:
         return self._serials
+
+    @property
+    def pad(self) -> ReflexPadInstance | None:
+        if self._instance:
+            return self._instance
+        return None
