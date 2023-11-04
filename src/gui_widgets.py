@@ -13,14 +13,15 @@ class DataReceiveSignaller(QtWidgets.QWidget):
     """Signal to emit when GUI event loop receives data from Data process."""
 
     ALL_PADS = QtCore.Signal(list)
-    PROFILE_NAMES = QtCore.Signal(list)
-    PAD_CONNECTED = QtCore.Signal(bool)
     FRAME_DATA = QtCore.Signal(PadEntry)
-    PROFILE_NEW = QtCore.Signal(str)
-    PROFILE_SAVED = QtCore.Signal(bool)
+    PAD_CONNECTED = QtCore.Signal(bool)
     PROFILE_LOADED = QtCore.Signal(str)
-    PROFILE_RENAMED = QtCore.Signal(tuple)
+    PROFILE_NAMES = QtCore.Signal(list)
+    PROFILE_NEW = QtCore.Signal(str)
     PROFILE_REMOVED = QtCore.Signal(bool)
+    PROFILE_RENAMED = QtCore.Signal(tuple)
+    PROFILE_SAVED = QtCore.Signal(bool)
+    SENSOR_UPDATED = QtCore.Signal()
 
     def __init__(self):
         super(DataReceiveSignaller, self).__init__()
@@ -41,50 +42,54 @@ class Widgets:
             self.connection_widget.REFRESH_CLICKED: WidgetMessage.REFRESH,
             self.pad_widget.FRAME_READY: WidgetMessage.FRAME_READY,
             self.pad_widget.NEW_SENS_VALUE: WidgetMessage.SENSOR_UPDATE,
+            self.pad_widget.VIEW_UPDATED: WidgetMessage.VIEW_UPDATED,
+            self.profile_widget.DROPDOWN_ACTIVATED: WidgetMessage.SELECT,
             self.profile_widget.NEW_CLICKED: WidgetMessage.NEW,
-            self.profile_widget.SAVE_CLICKED: WidgetMessage.SAVE,
             self.profile_widget.REMOVE_CLICKED: WidgetMessage.REMOVE,
             self.profile_widget.RENAME_CLICKED: WidgetMessage.RENAME,
-            self.profile_widget.DROPDOWN_ACTIVATED: WidgetMessage.SELECT
+            self.profile_widget.SAVE_CLICKED: WidgetMessage.SAVE,
         }
 
         self.data_requests = {
-            WidgetMessage.INIT: [],
             WidgetMessage.CONNECT: [self.connection_widget.get_pad_serial],
-            WidgetMessage.REFRESH: [],
-            WidgetMessage.QUIT: [],
             WidgetMessage.FRAME_READY: [],
-            WidgetMessage.SENSOR_UPDATE: [self.pad_widget.get_update_data],
+            WidgetMessage.INIT: [],
             WidgetMessage.NEW: [],
-            WidgetMessage.SAVE: [self.profile_widget.get_pad_name],
+            WidgetMessage.QUIT: [],
+            WidgetMessage.REFRESH: [],
             WidgetMessage.REMOVE: [self.profile_widget.get_pad_name],
             WidgetMessage.RENAME: [
                 self.profile_widget.get_pad_name,
                 self.profile_widget.get_profile_name
             ],
-            WidgetMessage.SELECT: [self.profile_widget.get_pad_name]
+            WidgetMessage.SAVE: [self.profile_widget.get_pad_name],
+            WidgetMessage.SELECT: [self.profile_widget.get_pad_name],
+            WidgetMessage.SENSOR_UPDATE: [self.pad_widget.get_update_data],
+            WidgetMessage.VIEW_UPDATED: []
         }
 
         self.process_requests = {
             DataProcessMessage.ALL_PADS: self.signals.ALL_PADS,
-            DataProcessMessage.PROFILE_NAMES: self.signals.PROFILE_NAMES,
-            DataProcessMessage.PAD_CONNECTED: self.signals.PAD_CONNECTED,
             DataProcessMessage.FRAME_DATA: self.signals.FRAME_DATA,
-            DataProcessMessage.PROFILE_SAVED: self.signals.PROFILE_SAVED,
+            DataProcessMessage.PAD_CONNECTED: self.signals.PAD_CONNECTED,
             DataProcessMessage.PROFILE_LOADED: self.signals.PROFILE_LOADED,
+            DataProcessMessage.PROFILE_NAMES: self.signals.PROFILE_NAMES,
             DataProcessMessage.PROFILE_NEW: self.signals.PROFILE_NEW,
+            DataProcessMessage.PROFILE_REMOVED: self.signals.PROFILE_REMOVED,
             DataProcessMessage.PROFILE_RENAMED: self.signals.PROFILE_RENAMED,
-            DataProcessMessage.PROFILE_REMOVED: self.signals.PROFILE_REMOVED
+            DataProcessMessage.PROFILE_SAVED: self.signals.PROFILE_SAVED,
+            DataProcessMessage.SENSOR_UPDATED: self.signals.SENSOR_UPDATED
         }
 
         self.signal_handlers = {
             self.signals.ALL_PADS: self.handlers.all_pads_received,
-            self.signals.PROFILE_NAMES: self.handlers.profile_names_received,
-            self.signals.PAD_CONNECTED: self.handlers.pad_connected,
             self.signals.FRAME_DATA: self.handlers.frame_data_received,
-            self.signals.PROFILE_SAVED: self.handlers.profile_saved,
+            self.signals.PAD_CONNECTED: self.handlers.pad_connected,
             self.signals.PROFILE_LOADED: self.handlers.profile_loaded,
-            self.signals.PROFILE_RENAMED: self.handlers.profile_renamed,
+            self.signals.PROFILE_NAMES: self.handlers.profile_names_received,
             self.signals.PROFILE_NEW: self.handlers.profile_new,
-            self.signals.PROFILE_REMOVED: self.handlers.profile_removed
+            self.signals.PROFILE_REMOVED: self.handlers.profile_removed,
+            self.signals.PROFILE_RENAMED: self.handlers.profile_renamed,
+            self.signals.PROFILE_SAVED: self.handlers.profile_saved,
+            self.signals.SENSOR_UPDATED: self.handlers.sensor_updated
         }

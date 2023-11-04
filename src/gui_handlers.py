@@ -80,3 +80,6 @@ class GUIHandlers:
         self._profile_widget.set_new_button(True)
         self._profile_widget.set_rename_button(True)
         self._profile_widget.set_save_button(False)
+
+    def sensor_updated(self) -> None:
+        self._pad_widget.update_sensor_thresholds()

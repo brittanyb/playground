@@ -12,6 +12,7 @@ class WidgetMessage:
     QUIT = "GUI_quit"
     FRAME_READY = "GUI_frame_ready"
     SENSOR_UPDATE = "GUI_sensor_update"
+    VIEW_UPDATED = "GUI_view_updated"
 
 
 class DataProcessMessage:
@@ -26,3 +27,4 @@ class DataProcessMessage:
     PROFILE_LOADED = "DP_profile_loaded"
     PROFILE_RENAMED = "DP_profile_renamed"
     PROFILE_REMOVED = "DP_profile_removed"
+    SENSOR_UPDATED = "DP_sensor_updated"
