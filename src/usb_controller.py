@@ -41,7 +41,7 @@ class HIDEndpointProcess(multiprocessing.Process):
         super(HIDEndpointProcess, self).__init__()
         self._info = pad_info
         self._serial = serial
-        self._queue = multiprocessing.Queue(maxsize=10)
+        self._queue = multiprocessing.Queue()
         self._device = None
         self.start()
 
@@ -68,26 +68,15 @@ class HIDEndpointProcess(multiprocessing.Process):
 class HIDReadProcess(HIDEndpointProcess):
     """Child class for reading data from an HID Endpoint."""
 
-    TIMEOUT_MS = 1
-
     def _process(self) -> str | None:
         self._device: usb.core.Device
-        sensor_data = self._device.read(
-            self._info.READ_EP, self._info.BYTES, self.TIMEOUT_MS
-        )
-        if self._queue.full():
-            self._queue.get_nowait()
+        sensor_data = self._device.read(self._info.READ_EP, self._info.BYTES)
         self._queue.put_nowait(sensor_data)
 
 
 class HIDWriteProcess(HIDEndpointProcess):
     """Child class for writing data to an HID Endpoint."""
 
-    TIMEOUT_SECS = 0.001
-
     def _process(self) -> str | None:
         self._device: usb.core.Device
-        if not self._queue.empty():
-            self._device.write(self._info.WRITE_EP, self._queue.get_nowait())
-        else:
-            time.sleep(self.TIMEOUT_SECS)
+        self._device.write(self._info.WRITE_EP, self._queue.get())

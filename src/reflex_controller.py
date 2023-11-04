@@ -23,10 +23,10 @@ class ReflexPadInstance:
         return self._serial
 
     def handle_sensor_data(self):
-        self._sensor_handler.take_sample()
+        return self._sensor_handler.take_sample()
 
     def handle_light_data(self):
-        self._light_handler.give_sample()
+        return self._light_handler.give_sample()
 
 
 class ReflexController:
