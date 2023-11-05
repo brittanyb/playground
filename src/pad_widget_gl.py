@@ -1,8 +1,8 @@
 import ctypes
 
+import numpy as np
 import OpenGL.GL as GL
 import PIL.Image as Image
-
 
 Quad = tuple[int, int, int, int]
 Rgba = tuple[int, int, int, int] | None
@@ -48,8 +48,63 @@ class TexturePainter:
         GL.glDisable(GL.GL_TEXTURE_2D)
 
 
+class RectShader:
+    VERT = """
+#version 330 core
+#extension GL_ARB_separate_shader_objects : enable
+
+layout(location = 0) in vec2 aPos;
+layout(location = 1) in vec4 aColor;
+
+layout(location = 0) out vec4 vertexColor;
+
+const float maxX = 840.0;
+const float maxY = 840.0;
+const float maxC = 255.0;
+
+void main() {
+    float normalizedX = (aPos.x / maxX) * 2.0 - 1.0;
+    float normalizedY = (aPos.y / maxY) * 2.0 - 1.0;
+    gl_Position = vec4(normalizedX, normalizedY, 0.0, 1.0);
+    vertexColor = aColor / maxC;
+}
+"""
+
+    FRAG = """
+#version 330 core
+
+in vec4 vertexColor;
+out vec4 FragColor;
+
+void main() {
+    FragColor = vertexColor;
+}
+    """
+
+    def __init__(self):
+        vert = self.compile_shader(self.VERT, GL.GL_VERTEX_SHADER)
+        frag = self.compile_shader(self.FRAG, GL.GL_FRAGMENT_SHADER)
+        self.program = GL.glCreateProgram()
+        GL.glAttachShader(self.program, vert)
+        GL.glAttachShader(self.program, frag)
+        GL.glLinkProgram(self.program)
+        GL.glDeleteShader(vert)
+        GL.glDeleteShader(frag)
+
+    def compile_shader(self, source: str, shader_type):
+        shader = GL.glCreateShader(shader_type)
+        GL.glShaderSource(shader, source)
+        GL.glCompileShader(shader)
+
+        if not GL.glGetShaderiv(shader, GL.GL_COMPILE_STATUS):
+            info: bytes = GL.glGetShaderInfoLog(shader)
+            raise Exception(info.decode())
+
+        return shader
+
+
 class Rect:
-    """Painter for a rectangle with a colour gradient."""
+    """Painter for rectangles with colour gradients."""
 
     NO_ALPHA = 255
     DARK_GRAY = (10, 10, 10, NO_ALPHA)
@@ -67,38 +122,67 @@ class Rect:
     GREEN_GRAD = (LIGHT_GREEN, DARK_GREEN)
     BLUE_GRAD = (LIGHT_BLUE, DARK_BLUE)
 
-    NUM_BYTES = 4
+    UINT32_BYTES = 4
+    VERTEX_LEN = 6
+    STRIDE = UINT32_BYTES * VERTEX_LEN
 
     def __init__(self):
         self._vertex_data = []
-        self.create_vbo()
+        self._shader = RectShader()
+        self._vao = None
 
     def draw(self, rect: RectCoord, col: Rgba, grad: Rgba = None) -> None:
-        if not col:
+        if col is None:
             return
-        self._vertex_data.extend(rect)
-        vert_range = range(len(rect))
-        colour = [grad if grad and i % 2 == 0 else col for i in vert_range]
-        for vertex_id in vert_range:
-            self._vertex_data.append(rect[vertex_id])
-            self._vertex_data.extend(colour[vertex_id])
+        self._vertex_data.extend([rect[0], rect[3]])
+        self._vertex_data.extend(grad if grad else col)
+        self._vertex_data.extend([rect[0], rect[1]])
+        self._vertex_data.extend(col)
+        self._vertex_data.extend([rect[2], rect[3]])
+        self._vertex_data.extend(col)
+        self._vertex_data.extend([rect[2], rect[3]])
+        self._vertex_data.extend(col)
+        self._vertex_data.extend([rect[0], rect[1]])
+        self._vertex_data.extend(col)
+        self._vertex_data.extend([rect[2], rect[1]])
+        self._vertex_data.extend(grad if grad else col)
 
     def create_vbo(self):
+        dat = np.array(self._vertex_data, dtype=np.float32)
         self._vbo = GL.glGenBuffers(1)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self._vbo)
-        array_type = ctypes.c_float * len(self._vertex_data)
-        GL.glBufferData(GL.GL_ARRAY_BUFFER, len(self._vertex_data) * 4,
-                        array_type(*self._vertex_data), GL.GL_STATIC_DRAW)
+        GL.glBufferData(GL.GL_ARRAY_BUFFER, dat.nbytes,
+                        dat, GL.GL_STATIC_DRAW)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
+
+    def setup_attribs(self, idx: int, size: int):
+        val_t = GL.GL_FLOAT
+        norm = GL.GL_FALSE
+        pointer = ctypes.c_void_p(idx * 4 * 2)
+        GL.glEnableVertexAttribArray(idx)
+        GL.glVertexAttribPointer(idx, size, val_t, norm, self.STRIDE, pointer)
+
+    def create_vao(self):
+        self._vao = GL.glGenVertexArrays(1)
+        GL.glBindVertexArray(self._vao)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self._vbo)
+        self.setup_attribs(0, 2)
+        self.setup_attribs(1, 4)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
+        GL.glBindVertexArray(0)
 
     def render(self):
-        if self._vbo is None:
+        if self._vao is None:
             self.create_vbo()
-        GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
-        GL.glEnableClientState(GL.GL_COLOR_ARRAY)
+            self.create_vao()
+        dat = np.array(self._vertex_data, dtype=np.float32)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self._vbo)
-        stride = 6 * 4
-        GL.glVertexPointer(2, GL.GL_FLOAT, stride, ctypes.c_void_p(0))
-        GL.glColorPointer(4, GL.GL_FLOAT, stride, ctypes.c_void_p(2 * 4))
-        GL.glDrawArrays(GL.GL_QUADS, 0, len(self._vertex_data) // 6)
-        GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
-        GL.glDisableClientState(GL.GL_COLOR_ARRAY)
+        GL.glBufferData(GL.GL_ARRAY_BUFFER, dat.nbytes,
+                        dat, GL.GL_STATIC_DRAW)
+        num_to_draw = len(self._vertex_data) // 6
+        GL.glUseProgram(self._shader.program)
+        GL.glBindVertexArray(self._vao)
+        GL.glDrawArrays(GL.GL_TRIANGLES, 0, num_to_draw)
+        GL.glBindVertexArray(0)
+        GL.glUseProgram(0)
+        self._vertex_data = []

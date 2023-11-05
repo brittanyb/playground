@@ -21,5 +21,7 @@ class Profiler:
     def end_profile(self):
         self.pr.disable()
         with open(self._fn, 'w') as f:
-            sys.stdout = sys.stderr = f
+            stdout_val = sys.stdout
+            sys.stdout = f
             self.pr.print_stats('cumulative')
+            sys.stdout = stdout_val

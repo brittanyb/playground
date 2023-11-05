@@ -3,7 +3,7 @@ import PySide6.QtGui as QtGui
 import PySide6.QtOpenGLWidgets as QtOpenGLWidgets
 
 from pad_model import PadModel, PadEntry, Coord
-from pad_widget_view import PadWidgetView
+from pad_widget_view import PadWidgetView, SensorCoord
 
 
 class PadWidget(QtOpenGLWidgets.QOpenGLWidget):
@@ -11,6 +11,7 @@ class PadWidget(QtOpenGLWidgets.QOpenGLWidget):
 
     FRAME_READY = QtCore.Signal()
     NEW_SENS_VALUE = QtCore.Signal()
+    VIEW_UPDATED = QtCore.Signal()
 
     def __init__(self):
         super(PadWidget, self).__init__()
@@ -41,15 +42,15 @@ class PadWidget(QtOpenGLWidgets.QOpenGLWidget):
         m_x = event.x()
         m_y = PadWidgetView.SIZE - event.y()
         if not self._dragging:
-            self._rect_coord = self.view.mouse_in_threshold_rect(m_x, m_y)
-        if (self._rect_coord):
+            self._sensor_coord = self.view.mouse_in_sensor_area(m_x, m_y)
+        if (self._sensor_coord):
             self.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         else:
             self.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
         if (
             not self._dragging or
             self._last_mouse_y is None or
-            not self._rect_coord or
+            self._sensor_coord is None or
             self._button is None
         ):
             return
@@ -58,7 +59,7 @@ class PadWidget(QtOpenGLWidgets.QOpenGLWidget):
         self.NEW_SENS_VALUE.emit()
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
-        if (self._rect_coord):
+        if (self._sensor_coord):
             self._dragging = True
             self._button = event.button()
             self._last_mouse_y = PadWidgetView.SIZE - event.y()
@@ -67,8 +68,8 @@ class PadWidget(QtOpenGLWidgets.QOpenGLWidget):
         self._dragging = False
         event.accept()
 
-    def get_update_data(self) -> tuple[int, int, tuple[Coord, Coord]] | None:
-        if self._rect_coord is None:
+    def get_update_data(self) -> tuple[int, int, SensorCoord] | None:
+        if self._sensor_coord is None:
             return None
         if self._button == QtCore.Qt.MouseButton.LeftButton:
             update_id = 0
@@ -76,4 +77,8 @@ class PadWidget(QtOpenGLWidgets.QOpenGLWidget):
             update_id = 1
         else:
             update_id = 2
-        return (update_id, self._mouse_y, self._rect_coord)
+        return (update_id, self._mouse_y, self._sensor_coord)
+
+    def update_sensor_thresholds(self):
+        self.view.update_sensor_thresholds()
+        self.VIEW_UPDATED.emit()

@@ -21,7 +21,7 @@ class DataReceiveSignaller(QtWidgets.QWidget):
     PROFILE_REMOVED = QtCore.Signal(bool)
     PROFILE_RENAMED = QtCore.Signal(tuple)
     PROFILE_SAVED = QtCore.Signal(bool)
-    SENSOR_UPDATED = QtCore.Signal()
+    SENSOR_UPDATED = QtCore.Signal(bool)
 
     def __init__(self):
         super(DataReceiveSignaller, self).__init__()

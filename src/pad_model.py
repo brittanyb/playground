@@ -42,7 +42,8 @@ class SensorEntry:
     current_value: int = 0
     threshold: int = 30
     hysteresis: int = 5
-    active: bool = False
+    updated: bool = True
+    _active: bool = False
 
     def set_base_value(self, base_value: int):
         self.base_value = int(max(0, min(base_value, self.B12_MAX)))
@@ -56,19 +57,19 @@ class SensorEntry:
     def set_hysteresis(self, hysteresis: int):
         self.hysteresis = int(max(1, min(hysteresis, self.threshold)))
 
-    def is_active(self) -> bool:
+    def set_active(self):
         delta_on = self.threshold - self.base_value
         delta_off = self.base_value + self.threshold - self.hysteresis
         pressed = self.current_value >= delta_on
         released = self.current_value <= delta_off
-        if ((not self._active) & pressed):
+        if not self._active & pressed:
             self._active = True
-        elif (self._active & released):
+        elif self.active & released:
             self._active = False
-        return self._active
 
-    def set_active(self, active: bool):
-        self.active = active
+    @property
+    def active(self) -> bool:
+        return self._active
 
     @property
     def profile_data(self) -> tuple[int, int]:
@@ -108,16 +109,18 @@ class PanelEntry:
             sensor.set_current_value(panel_data.sensors[coord].current_value)
             sensor.set_hysteresis(panel_data.sensors[coord].hysteresis)
             sensor.set_threshold(panel_data.sensors[coord].threshold)
-            sensor.set_active(panel_data.sensors[coord].active)
+            sensor.set_active()
         for coord, led in self.leds.items():
             led.colour = panel_data.leds[coord].colour
+
+
+SensorCoord = tuple[Coord, Coord]
 
 
 @dataclasses.dataclass
 class PadEntry:
     blanks: list[Coord]
     panels: dict[Coord, PanelEntry]
-    updated: bool
 
     def __init__(
             self, blanks: Coords, panels: Coords, sensors: Coords, leds: Coords
@@ -182,13 +185,15 @@ class PadModel:
     def get_model_data(self) -> PadEntry:
         return self._model
 
-    def set_sensor(self, data: tuple[int, int, tuple[Coord, Coord]]) -> None:
+    def set_sensor(self, data: tuple[int, int, SensorCoord]) -> bool:
         self._model.updated = True
         sensor = self._model.panels[data[2][0]].sensors[data[2][1]]
+        sensor.updated = True
         if data[0] == 0:
             sensor.set_threshold(sensor.threshold + data[1])
         elif data[0] == 1:
             sensor.set_hysteresis(sensor.hysteresis - data[1])
+        return True
 
     def set_saved(self) -> None:
         self._model.updated = False
@@ -198,12 +203,17 @@ class PadModel:
             self.BLANKS, self.PANELS, self.SENSORS, self.LEDS
         )
 
+    def view_updated(self) -> None:
+        for panel in self._model.panels.values():
+            for sensor in panel.sensors.values():
+                sensor.updated = False
+
     @property
     def profile_data(self) -> dict:
-        self._model.updated = False
+        self.set_saved()
         return self._model.profile_data
 
     @profile_data.setter
     def profile_data(self, profile_data: ProfilePadData) -> None:
-        self._model.updated = False
+        self.set_saved()
         self._model.profile_data = profile_data
