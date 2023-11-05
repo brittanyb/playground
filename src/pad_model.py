@@ -58,13 +58,12 @@ class SensorEntry:
         self.hysteresis = int(max(1, min(hysteresis, self.threshold)))
 
     def set_active(self):
-        delta_on = self.threshold - self.base_value
-        delta_off = self.base_value + self.threshold - self.hysteresis
-        pressed = self.current_value >= delta_on
-        released = self.current_value <= delta_off
-        if not self._active & pressed:
+        delta = self.current_value - self.base_value
+        pressed = delta >= self.threshold
+        released = delta <= self.threshold - self.hysteresis
+        if not self._active and pressed:
             self._active = True
-        elif self.active & released:
+        elif self._active and released:
             self._active = False
 
     @property
@@ -176,7 +175,7 @@ class PadModel:
 
     BLANKS = Coords([(0, 0), (0, 2), (1, 1), (2, 0), (2, 2)])
     PANELS = Coords([(0, 1), (1, 0), (1, 2), (2, 1)])
-    SENSORS = Coords([(0, 0), (0, 1), (1, 0), (1, 1)])
+    SENSORS = Coords([(1, 1), (1, 0), (0, 1), (0, 0)])
     LEDS = Coords(led_coords())
 
     def __init__(self):
@@ -194,6 +193,18 @@ class PadModel:
         elif data[0] == 1:
             sensor.set_hysteresis(sensor.hysteresis - data[1])
         return True
+
+    def set_baseline(self, data: dict[tuple[Coord, Coord], int]) -> None:
+        for coords, value in data.items():
+            panel = coords[0]
+            sensor = coords[1]
+            self._model.panels[panel].sensors[sensor].set_base_value(value)
+
+    def set_sensor_data(self, data: dict[tuple[Coord, Coord], int]) -> None:
+        for coords, value in data.items():
+            panel = coords[0]
+            sensor = coords[1]
+            self._model.panels[panel].sensors[sensor].set_current_value(value)
 
     def set_saved(self) -> None:
         self._model.updated = False

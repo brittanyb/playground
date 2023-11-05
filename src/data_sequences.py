@@ -81,6 +81,10 @@ class Sequences:
         if not (pad := self.pad_controller.pad):
             return
         delta = pad.handle_sensor_data()
+        if pad._sensor_handler.refreshed:
+            self.pad_model.set_baseline(pad.pad_data)
+        else:
+            self.pad_model.set_sensor_data(pad.pad_data)
         if self._sensor_delta is None and delta:
             self._sensor_delta = delta
         delta = pad.handle_light_data()

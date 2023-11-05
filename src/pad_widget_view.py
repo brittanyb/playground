@@ -132,10 +132,11 @@ class SensorPainter:
     def draw(self) -> None:
         for coord, sensor in self._data.items():
             value_grad = Rect.GREEN_GRAD if sensor.active else Rect.BLUE_GRAD
-            delta = sensor.current_value - sensor.base_value
-            delta_pos = self._base[coord][1] + delta
+            delta_val = sensor.current_value - sensor.base_value
+            delta_pos = max(min(delta_val, self.HEIGHT), 0)
+            abs_pos = self._base[coord][1] + delta_pos
             self._rect.draw(self._base[coord], *Rect.GRAY_GRAD)
-            self._rect.draw((*self._base[coord][0:3], delta_pos), *value_grad)
+            self._rect.draw((*self._base[coord][0:3], abs_pos), *value_grad)
             self._rect.draw(self._threshold[coord], *Rect.RED_GRAD)
 
     @property
