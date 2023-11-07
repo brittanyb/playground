@@ -10,7 +10,7 @@ from gui_widgets import Widgets
 class GUIThread(QtCore.QThread):
     """Thread for GUI that handles event data TX/RX to data process."""
 
-    TIMEOUT_SECS = 0.001
+    TIMEOUT_SECS = 0.005
 
     def __init__(self, widgets: Widgets):
         super(GUIThread, self).__init__()

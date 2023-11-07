@@ -1,13 +1,10 @@
 import multiprocessing
 
 from data_sequences import Sequences
-from profiler import Profiler
 
 
 class DataProcess(multiprocessing.Process):
     """Main process for data handling."""
-
-    TIMEOUT_SECS = 0.0002
 
     def __init__(self):
         super(DataProcess, self).__init__()
@@ -18,16 +15,15 @@ class DataProcess(multiprocessing.Process):
         self._tx_queue.put_nowait((message, data))
 
     def run(self) -> None:
-        Profiler(5, 'data.txt')
-        sequences = Sequences()
+        self._sequences = Sequences()
         while True:
-            sequences.handle_pad_data()
+            self._sequences.handle_pad_data()
             if not self._rx_queue.empty():
                 message, data = self._rx_queue.get_nowait()
-                requests = sequences.receive.get(message, [])
+                requests = self._sequences.receive.get(message, [])
                 for request in requests:
                     if (res := request(*data)) is not None:
-                        if msg := sequences.transmit.get(request, None):
+                        if msg := self._sequences.transmit.get(request, None):
                             self.send_event(msg, res)
 
     @property

@@ -1,7 +1,8 @@
 import multiprocessing
+from multiprocessing.sharedctypes import SynchronizedArray
+from multiprocessing.synchronize import Event
 
 import libusb_package
-import time
 import usb.core
 import usb.backend.libusb1
 
@@ -41,7 +42,8 @@ class HIDEndpointProcess(multiprocessing.Process):
         super(HIDEndpointProcess, self).__init__()
         self._info = pad_info
         self._serial = serial
-        self._queue = multiprocessing.Queue()
+        self._data = multiprocessing.Array('i', self._info.BYTES)
+        self._event = multiprocessing.Event()
         self._device = None
         self.start()
 
@@ -57,26 +59,36 @@ class HIDEndpointProcess(multiprocessing.Process):
         while True:
             self._process()
 
-    def _process(self) -> str | None:
+    def _process(self) -> None:
         pass
 
     @property
-    def queue(self) -> multiprocessing.Queue:
-        return self._queue
+    def data(self) -> SynchronizedArray:
+        return self._data
+
+    @property
+    def event(self) -> Event:
+        return self._event
 
 
 class HIDReadProcess(HIDEndpointProcess):
     """Child class for reading data from an HID Endpoint."""
 
-    def _process(self) -> str | None:
+    def _process(self) -> None:
         self._device: usb.core.Device
         sensor_data = self._device.read(self._info.READ_EP, self._info.BYTES)
-        self._queue.put_nowait(sensor_data)
+        with self._data.get_lock():
+            for i, v in enumerate(sensor_data):
+                self._data[i] = v
+        self._event.set()
 
 
 class HIDWriteProcess(HIDEndpointProcess):
     """Child class for writing data to an HID Endpoint."""
 
-    def _process(self) -> str | None:
+    def _process(self) -> None:
         self._device: usb.core.Device
-        self._device.write(self._info.WRITE_EP, self._queue.get())
+        with self._data.get_lock():
+            data = [d for d in self._data]
+        self._device.write(self._info.WRITE_EP, data)
+        self._event.set()

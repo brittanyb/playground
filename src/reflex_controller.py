@@ -10,24 +10,24 @@ class ReflexPadInstance:
 
     def __init__(self, info: ReflexV2Info, serial: str):
         self._serial = serial
-        self._sensors_process = HIDReadProcess(info, serial)
-        self._lights_process = HIDWriteProcess(info, serial)
-        self._sensor_handler = SensorDataHandler(self._sensors_process.queue)
-        self._light_handler = LEDDataHandler(self._lights_process.queue)
+        self._read = HIDReadProcess(info, serial)
+        self._write = HIDWriteProcess(info, serial)
+        self._sensors = SensorDataHandler(self._read.data, self._read.event)
+        self._lights = LEDDataHandler(self._write.data, self._write.event)
 
     def disconnect(self) -> None:
-        self._sensors_process.terminate()
-        self._lights_process.terminate()
+        self._read.terminate()
+        self._write.terminate()
 
-    def handle_sensor_data(self):
-        return self._sensor_handler.take_sample()
+    def handle_sensor_data(self) -> None:
+        self._sensors.take_sample()
 
-    def handle_light_data(self):
-        return self._light_handler.give_sample()
+    def handle_light_data(self) -> None:
+        self._lights.give_sample()
 
     @property
     def pad_data(self) -> dict[tuple[Coord, Coord], int]:
-        return self._sensor_handler.pad_data
+        return self._sensors.pad_data
 
     @property
     def serial(self) -> str:

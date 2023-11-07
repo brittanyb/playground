@@ -8,7 +8,6 @@ import qdarktheme
 from data_process import DataProcess
 from gui_thread import GUIThread
 from gui_widgets import Widgets
-from profiler import Profiler
 
 
 class MainWidget(QtWidgets.QWidget):
@@ -98,6 +97,5 @@ class MainApplication(QtWidgets.QApplication):
 
 
 if __name__ == "__main__":
-    Profiler(5, 'gui.txt')
     app = MainApplication()
     app.exec()

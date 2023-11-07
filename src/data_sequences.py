@@ -77,20 +77,13 @@ class Sequences:
             DataProcessMessage.PROFILE_SAVED,
     }
 
-    def handle_pad_data(self):
+    def handle_pad_data(self) -> bool:
         if not (pad := self.pad_controller.pad):
-            return
-        delta = pad.handle_sensor_data()
-        if pad._sensor_handler.refreshed:
+            return False
+        pad.handle_sensor_data()
+        if pad._sensors.refreshed:
             self.pad_model.set_baseline(pad.pad_data)
         else:
             self.pad_model.set_sensor_data(pad.pad_data)
-        if self._sensor_delta is None and delta:
-            self._sensor_delta = delta
-        delta = pad.handle_light_data()
-        if self._light_delta is None and delta:
-            self._light_delta = delta
-        if self._sensor_delta and self._light_delta:
-            print(f"{self._sensor_delta=:8.5f} {self._light_delta=:8.5f}")
-            self._sensor_delta = None
-            self._light_delta = None
+        pad.handle_light_data()
+        return True
