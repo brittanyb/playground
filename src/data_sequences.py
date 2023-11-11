@@ -5,8 +5,8 @@ from reflex_controller import ReflexController
 
 
 class Sequences:
-    pad_controller = ReflexController()
     pad_model = PadModel()
+    pad_controller = ReflexController(pad_model)
     profile_controller = ProfileController(pad_model)
     _sensor_delta = None
     _light_delta = None

@@ -1,5 +1,5 @@
 from led_data_handler import LEDDataHandler
-from pad_model import Coord
+from pad_model import Coord, PadModel
 from sensor_data_handler import SensorDataHandler
 from usb_controller import USBDeviceList, HIDReadProcess, HIDWriteProcess
 from usb_info import ReflexV2Info
@@ -8,12 +8,16 @@ from usb_info import ReflexV2Info
 class ReflexPadInstance:
     """API to a connected RE:Flex v2 dance pad."""
 
-    def __init__(self, info: ReflexV2Info, serial: str):
+    def __init__(self, info: ReflexV2Info, serial: str, model: PadModel):
         self._serial = serial
         self._read = HIDReadProcess(info, serial)
         self._write = HIDWriteProcess(info, serial)
-        self._sensors = SensorDataHandler(self._read.data, self._read.event)
-        self._lights = LEDDataHandler(self._write.data, self._write.event)
+        self._sensors = SensorDataHandler(
+            self._read.data, self._read.event
+        )
+        self._lights = LEDDataHandler(
+            self._write.data, self._write.event, model
+        )
 
     def disconnect(self) -> None:
         self._read.terminate()
@@ -40,10 +44,11 @@ class ReflexController:
     CONNECTED = True
     DISCONNECTED = False
 
-    def __init__(self):
+    def __init__(self, model: PadModel):
         self._info = ReflexV2Info()
         self._instance = None
         self._serials = []
+        self._model = model
         self.enumerate_pads()
 
     def enumerate_pads(self) -> None:
@@ -56,7 +61,7 @@ class ReflexController:
             return self.connect_pad(serial)
 
     def connect_pad(self, serial: str) -> bool:
-        if pad := ReflexPadInstance(self._info, serial):
+        if pad := ReflexPadInstance(self._info, serial, self._model):
             if self._instance is None and serial in self._serials:
                 self._instance = pad
                 return self.CONNECTED

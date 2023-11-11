@@ -50,6 +50,7 @@ class SensorEntry:
 
     def set_current_value(self, current_value: int):
         self.current_value = int(max(0, min(current_value, self.MAX_BASE)))
+        self.set_active()
 
     def set_threshold(self, threshold: int):
         self.threshold = int(max(self.hysteresis, min(threshold, self.MAX_ON)))
@@ -88,6 +89,13 @@ class PanelEntry:
     def __init__(self, sensors: Coords, leds: Coords):
         self.sensors = {coord: SensorEntry() for coord in sensors.coords}
         self.leds = {coord: LEDEntry() for coord in leds.coords}
+    
+    @property
+    def active(self) -> bool:
+        for sensor in self.sensors.values():
+            if sensor.active:
+                return True
+        return False
 
     @property
     def profile_data(self) -> ProfilePanelData:
@@ -108,7 +116,6 @@ class PanelEntry:
             sensor.set_current_value(panel_data.sensors[coord].current_value)
             sensor.set_hysteresis(panel_data.sensors[coord].hysteresis)
             sensor.set_threshold(panel_data.sensors[coord].threshold)
-            sensor.set_active()
         for coord, led in self.leds.items():
             led.colour = panel_data.leds[coord].colour
 
@@ -183,6 +190,9 @@ class PadModel:
 
     def get_model_data(self) -> PadEntry:
         return self._model
+
+    def get_led_data(self) -> dict[Coord, dict[Coord, LEDEntry]]:
+        return {c: p.leds for c, p in self._model.panels.items()}
 
     def set_sensor(self, data: tuple[int, int, SensorCoord]) -> bool:
         self._model.updated = True

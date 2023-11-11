@@ -19,12 +19,19 @@ class DataProcess(multiprocessing.Process):
         while True:
             self._sequences.handle_pad_data()
             if not self._rx_queue.empty():
-                message, data = self._rx_queue.get_nowait()
-                requests = self._sequences.receive.get(message, [])
-                for request in requests:
-                    if (res := request(*data)) is not None:
-                        if msg := self._sequences.transmit.get(request, None):
-                            self.send_event(msg, res)
+                self.handle_events()
+
+    def handle_events(self):
+        rx_mes, rx_data = self._rx_queue.get_nowait()
+        requested_methods = self._sequences.receive.get(rx_mes, [])
+        for request in requested_methods:
+            tx_data = request(*rx_data)
+            if tx_data is None:
+                continue
+            tx_mes = self._sequences.transmit.get(request, None)
+            if tx_mes is None:
+                continue
+            self.send_event(tx_mes, tx_data)
 
     @property
     def rx_queue(self) -> multiprocessing.Queue:

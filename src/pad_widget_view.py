@@ -52,11 +52,11 @@ class LEDGridPainter:
 
     def _create_led_grid_base(self) -> None:
         grid_x = self._panel_x + self.GRID_OFFSET
-        grid_y = self._panel_y + self.GRID_OFFSET
+        grid_y = self._panel_y + self.GRID_OFFSET + self.GRID_SIZE
         self._base: dict[Coord, RectCoord] = {}
         for coord in self._data.keys():
             x1 = grid_x + self.LED_STEP * coord[0]
-            y1 = grid_y + self.LED_STEP * coord[1]
+            y1 = grid_y - self.LED_SIZE - (self.LED_STEP * coord[1])
             x2 = x1 + self.LED_SIZE
             y2 = y1 + self.LED_SIZE
             self._base[coord] = (x1, y1, x2, y2)
