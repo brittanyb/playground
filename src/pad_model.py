@@ -1,9 +1,11 @@
 import dataclasses
 
+import keyboard
+
 Coord = tuple[int, int]
 Colour = tuple[int, int, int]
 BlankData = list[Coord]
-ProfilePanelData = dict[Coord, tuple[int, int]]
+ProfilePanelData = tuple[dict[Coord, tuple[int, int]], str]
 ProfilePadData = dict[Coord, ProfilePanelData]
 
 
@@ -85,11 +87,14 @@ class SensorEntry:
 class PanelEntry:
     sensors: dict[Coord, SensorEntry]
     leds: dict[Coord, LEDEntry]
+    key_val: str
+    pressed: bool = False
 
-    def __init__(self, sensors: Coords, leds: Coords):
+    def __init__(self, sensors: Coords, leds: Coords, key_val: str):
         self.sensors = {coord: SensorEntry() for coord in sensors.coords}
         self.leds = {coord: LEDEntry() for coord in leds.coords}
-    
+        self.key_val = key_val
+
     @property
     def active(self) -> bool:
         for sensor in self.sensors.values():
@@ -99,16 +104,26 @@ class PanelEntry:
 
     @property
     def profile_data(self) -> ProfilePanelData:
-        return {
+        sensor_data = {
             coord: sensor.profile_data
             for coord, sensor in self.sensors.items()
         }
+        return (sensor_data, self.key)
+
+    @property
+    def key(self) -> str:
+        return self.key_val
+
+    @key.setter
+    def key(self, key_val: str):
+        self.key_val = key_val
 
     @profile_data.setter
     def profile_data(self, panel_data: ProfilePanelData):
         self._profile_set = False
         for coord, data in self.sensors.items():
-            data.profile_data = panel_data[coord]
+            data.profile_data = panel_data[0][coord]
+        self.key_val = panel_data[1]
 
     def set_frame_data(self, panel_data: "PanelEntry") -> None:
         for coord, sensor in self.sensors.items():
@@ -129,11 +144,13 @@ class PadEntry:
     panels: dict[Coord, PanelEntry]
 
     def __init__(
-            self, blanks: Coords, panels: Coords, sensors: Coords, leds: Coords
+            self, blanks: Coords, panels: Coords, sensors: Coords,
+            leds: Coords, keys: list[str]
     ):
         self.blanks = blanks.coords
         self.panels = {
-            coord: PanelEntry(sensors, leds) for coord in panels.coords
+            coord: PanelEntry(sensors, leds, key)
+            for coord, key in zip(panels.coords, keys)
         }
         self.updated = False
 
@@ -152,6 +169,10 @@ class PadEntry:
         self.blanks = pad_entry.blanks
         for coord, panel in self.panels.items():
             panel.set_frame_data(pad_entry.panels[coord])
+
+    def set_keys(self, keys: list[str]) -> None:
+        for panel, key in zip(self.panels.values(), keys):
+            panel.key = key
 
 
 class PadModel:
@@ -184,6 +205,7 @@ class PadModel:
     PANELS = Coords([(0, 1), (1, 0), (1, 2), (2, 1)])
     SENSORS = Coords([(1, 1), (1, 0), (0, 1), (0, 0)])
     LEDS = Coords(led_coords())
+    KEYS = ['A', 'B', 'C', 'D']
 
     def __init__(self):
         self.set_default()
@@ -215,19 +237,29 @@ class PadModel:
             panel = coords[0]
             sensor = coords[1]
             self._model.panels[panel].sensors[sensor].set_current_value(value)
+        for panel in self._model.panels.values():
+            if panel.active and not panel.pressed:
+                panel.pressed = True
+                keyboard.press(panel.key)
+            if not panel.active and panel.pressed:
+                panel.pressed = False
+                keyboard.release(panel.key)
 
     def set_saved(self) -> None:
         self._model.updated = False
 
     def set_default(self) -> None:
         self._model = PadEntry(
-            self.BLANKS, self.PANELS, self.SENSORS, self.LEDS
+            self.BLANKS, self.PANELS, self.SENSORS, self.LEDS, self.KEYS
         )
 
     def view_updated(self) -> None:
         for panel in self._model.panels.values():
             for sensor in panel.sensors.values():
                 sensor.updated = False
+
+    def keys_updated(self, keys: list[str]) -> None:
+        self._model.set_keys(keys)
 
     @property
     def profile_data(self) -> dict:

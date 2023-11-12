@@ -23,6 +23,9 @@ class Sequences:
             profile_controller.initialise_profile,
             pad_model.get_model_data
         ],
+        WidgetMessage.KEYS: [
+            profile_controller.handle_keys
+        ],
         WidgetMessage.NEW: [
             pad_model.set_default,
             profile_controller.create_new_profile
@@ -74,7 +77,7 @@ class Sequences:
         profile_controller.rename_user_profile:
             DataProcessMessage.PROFILE_RENAMED,
         profile_controller.save_user_profile:
-            DataProcessMessage.PROFILE_SAVED,
+            DataProcessMessage.PROFILE_SAVED
     }
 
     def handle_pad_data(self) -> bool:

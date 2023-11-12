@@ -22,6 +22,7 @@ class DataReceiveSignaller(QtWidgets.QWidget):
     PROFILE_RENAMED = QtCore.Signal(tuple)
     PROFILE_SAVED = QtCore.Signal(bool)
     SENSOR_UPDATED = QtCore.Signal(bool)
+    KEYS_UPDATED = QtCore.Signal()
 
     def __init__(self):
         super(DataReceiveSignaller, self).__init__()
@@ -48,6 +49,7 @@ class Widgets:
             self.profile_widget.REMOVE_CLICKED: WidgetMessage.REMOVE,
             self.profile_widget.RENAME_CLICKED: WidgetMessage.RENAME,
             self.profile_widget.SAVE_CLICKED: WidgetMessage.SAVE,
+            self.profile_widget.KEYS_CLICKED: WidgetMessage.KEYS
         }
 
         self.data_requests = {
@@ -65,7 +67,8 @@ class Widgets:
             WidgetMessage.SAVE: [self.profile_widget.get_pad_name],
             WidgetMessage.SELECT: [self.profile_widget.get_pad_name],
             WidgetMessage.SENSOR_UPDATE: [self.pad_widget.get_update_data],
-            WidgetMessage.VIEW_UPDATED: []
+            WidgetMessage.VIEW_UPDATED: [],
+            WidgetMessage.KEYS: [self.profile_widget.get_keys]
         }
 
         self.process_requests = {

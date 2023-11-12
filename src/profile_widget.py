@@ -1,4 +1,5 @@
 import PySide6.QtCore as QtCore
+import PySide6.QtGui as QtGui
 import PySide6.QtWidgets as QtWidgets
 
 
@@ -28,6 +29,47 @@ class ProfileNameDialog(QtWidgets.QDialog):
         return (False, "")
 
 
+class KeyEntryDialog(QtWidgets.QDialog):
+    """Dialog to enter keys for a user profile."""
+
+    DIALOG_TITLE = "Enter key presses for each panel"
+    ACCEPT_STR = "OK"
+
+    def __init__(self):
+        super(KeyEntryDialog, self).__init__()
+        self.setWindowTitle(self.DIALOG_TITLE)
+
+        self.key_inputs = [QtWidgets.QLineEdit() for _ in range(4)]
+        accept = QtWidgets.QPushButton(self.ACCEPT_STR)
+        accept.clicked.connect(self.accept)
+
+        labels = ["Left", "Down", "Up", "Right"]
+        regex = QtCore.QRegularExpression("[a-z-A-Z_]+]")
+        validator = QtGui.QRegularExpressionValidator(regex)
+
+        layout = QtWidgets.QVBoxLayout()
+        for label, key_input in zip(labels, self.key_inputs):
+            key_input.setMaxLength(1)
+            key_input.setValidator(validator)
+            key_layout = QtWidgets.QHBoxLayout()
+            key_layout.addWidget(QtWidgets.QLabel(label))
+            key_layout.addWidget(key_input)
+            key_widget = QtWidgets.QWidget()
+            key_widget.setLayout(key_layout)
+            layout.addWidget(key_widget)
+        layout.addWidget(accept)
+        self.setLayout(layout)
+
+    def get_keys(self) -> tuple[bool, list[str]]:
+        if self.exec_() == QtWidgets.QDialog.DialogCode.Accepted:
+            keys = []
+            for key_input in self.key_inputs:
+                keys.append(key_input.text())
+            if len(keys) <= len(set(keys)):
+                return (True, keys)
+        return (False, [])
+
+
 class ProfileWidget(QtWidgets.QWidget):
     """Widget to manage profile for a dance pad session."""
 
@@ -35,6 +77,7 @@ class ProfileWidget(QtWidgets.QWidget):
     SAVE_ICON = QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
     REMOVE_ICON = QtWidgets.QStyle.StandardPixmap.SP_DialogDiscardButton
     RENAME_ICON = QtWidgets.QStyle.StandardPixmap.SP_FileDialogDetailedView
+    KEYS_ICON = QtWidgets.QStyle.StandardPixmap.SP_FileDialogListView
 
     LABEL_STR = "Profile:"
 
@@ -48,6 +91,7 @@ class ProfileWidget(QtWidgets.QWidget):
     RENAME_CLICKED = QtCore.Signal()
     SAVE_CLICKED = QtCore.Signal()
     DROPDOWN_ACTIVATED = QtCore.Signal(str)
+    KEYS_CLICKED = QtCore.Signal()
 
     def __init__(self):
         super(ProfileWidget, self).__init__()
@@ -57,6 +101,7 @@ class ProfileWidget(QtWidgets.QWidget):
         self._save = self._create_tool_button(self.SAVE_ICON)
         self._remove = self._create_tool_button(self.REMOVE_ICON)
         self._rename = self._create_tool_button(self.RENAME_ICON)
+        self._keys = self._create_tool_button(self.KEYS_ICON)
 
         self._dropdown = QtWidgets.QComboBox()
         self._dropdown.setSizePolicy(self.DROP_H_POLICY, self.DROP_V_POLICY)
@@ -68,6 +113,7 @@ class ProfileWidget(QtWidgets.QWidget):
         layout.addWidget(self._rename)
         layout.addWidget(self._save)
         layout.addWidget(self._remove)
+        layout.addWidget(self._keys)
         layout.setContentsMargins(*self.LAYOUT_PADDING)
         self.setLayout(layout)
 
@@ -76,6 +122,7 @@ class ProfileWidget(QtWidgets.QWidget):
         self._remove.clicked.connect(self.REMOVE_CLICKED.emit)
         self._rename.clicked.connect(self.RENAME_CLICKED.emit)
         self._dropdown.activated.connect(self.DROPDOWN_ACTIVATED.emit)
+        self._keys.clicked.connect(self.KEYS_CLICKED.emit)
 
     def _create_tool_button(
         self, icon: QtWidgets.QStyle.StandardPixmap
@@ -125,6 +172,9 @@ class ProfileWidget(QtWidgets.QWidget):
 
     def get_profile_name(self) -> tuple[bool, str]:
         return ProfileNameDialog().get_name()
+
+    def get_keys(self) -> tuple[bool, list[str], str]:
+        return (*KeyEntryDialog().get_keys(), self.get_pad_name())
 
     def get_pad_name(self) -> str:
         return self._dropdown.currentText()

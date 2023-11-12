@@ -74,6 +74,12 @@ class ProfileController:
         self.save_user_profile(profile_name)
         return profile_name
 
+    def handle_keys(self, values: tuple[bool, list[str], str]) -> None:
+        if not values[0]:
+            return
+        self._model.keys_updated(values[1])
+        self.save_user_profile(values[2])
+
     def rename_user_profile(
         self, old: str, new_name: tuple[bool, str]
     ) -> tuple[str, str]:

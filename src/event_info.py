@@ -13,6 +13,7 @@ class WidgetMessage:
     FRAME_READY = "GUI_frame_ready"
     SENSOR_UPDATE = "GUI_sensor_update"
     VIEW_UPDATED = "GUI_view_updated"
+    KEYS = "GUI_keys"
 
 
 class DataProcessMessage:

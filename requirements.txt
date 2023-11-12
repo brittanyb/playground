@@ -7,4 +7,4 @@ pyusb
 libusb-package
 appdirs
 pyinstaller
-pyautogui
+keyboard
