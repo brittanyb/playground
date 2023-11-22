@@ -12,6 +12,28 @@ class LEDDataHandler:
     NUM_PANELS = 4
     NUM_FRAMES = 16
     NUM_LEDS = 21
+
+    GAMMA = [
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   2,
+        2,   2,   2,   2,   2,   2,   2,   3,   3,   3,   3,   3,   3,   3,
+        4,   4,   4,   4,   4,   5,   5,   5,   5,   6,   6,   6,   6,   7,
+        7,   7,   7,   8,   8,   8,   9,   9,   9,  10,   10,  10,  11,  11,
+        11,  12,  12,  13,  13,  13,  14,  14,  15,  15,  16,  16,  17,  17,
+        18,  18,  19,  19,  20,  20,  21,  21,  22,  22,  23,  24,  24,  25,
+        25,  26,  27,  27,  28,  29,  29,  30,  31,  32,  32,  33,  34,  35,
+        35,  36,  37,  38,  39,  39,  40,  41,  42,  43,  44,  45,  46,  47,
+        48,  49,  50,  50,  51,  52,  54,  55,  56,  57,  58,  59,  60,  61,
+        62,  63,  64,  66,  67,  68,  69,  70,  72,  73,  74,  75,  77,  78,
+        79,  81,  82,  83,  85,  86,  87,  89,  90,  92,  93,  95,  96,  98,
+        99,  101, 102, 104, 105, 107, 109, 110, 112, 114, 115, 117, 119, 120,
+        122, 124, 126, 127, 129, 131, 133, 135, 137, 138, 140, 142, 144, 146,
+        148, 150, 152, 154, 156, 158, 160, 162, 164, 167, 169, 171, 173, 175,
+        177, 180, 182, 184, 186, 189, 191, 193, 196, 198, 200, 203, 205, 208,
+        210, 213, 215, 218, 220, 223, 225, 228, 231, 233, 236, 239, 241, 244,
+        247, 249, 252, 255
+    ]
     POSITIONS = [
         [
             (5, 0), (5, 1), (4, 1), (5, 2), (4, 2), (3, 2), (5, 3),
@@ -44,15 +66,17 @@ class LEDDataHandler:
         self._panel = -1
         self._frame = -1
         self._led_data = {}
+        self._frame_change = False
 
     def setup_frame_data(self) -> int:
         self._segment = (self._segment + 1) % self.NUM_SEGMENTS
         if self._segment == 0:
             self._panel = (self._panel + 1) % self.NUM_PANELS
             if self._panel == 0:
+                self._frame_change = True
                 self._frame = (self._frame + 1) % self.NUM_FRAMES
-                if self._frame == 0:
-                    self._led_data = self._model.get_led_data()
+                self._led_data = self._model.get_led_data()
+
         return (self._panel << 6) | (self._segment << 4) | (self._frame)
 
     def get_data_byte(self, byte_index: int) -> int:
@@ -63,11 +87,12 @@ class LEDDataHandler:
         led_coord = self.POSITIONS[self._segment][led_index]
         led = panel_data[led_coord]
         if byte_index % 3 == 0:
-            return led.green
+            col = led.green
         elif byte_index % 3 == 1:
-            return led.red
+            col = led.red
         else:
-            return led.blue
+            col = led.blue
+        return self.GAMMA[col]
 
     def give_sample(self) -> None:
         if not self._event.is_set():
@@ -78,5 +103,7 @@ class LEDDataHandler:
         with self._data.get_lock():
             for index in range(64):
                 self._data[index] = frame_data[index]
-        self._generator.update_led_frame()
+        if self._frame_change:
+            self._generator.update_led_frame()
+            self._frame_change = False
         self._event.clear()

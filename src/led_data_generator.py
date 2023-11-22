@@ -6,6 +6,8 @@ from pad_model import PadModel, Coord, Colour
 class LEDDataGenerator:
     """Dummy data to test pad widget animations."""
 
+    BASE_MAX = 0.35
+
     @staticmethod
     def panel_bases() -> dict[Coord, list[Coord]]:
         def rotate(grid: list[list[int]], num_rots: int) -> list[list[int]]:
@@ -46,7 +48,7 @@ class LEDDataGenerator:
                         coords.append((x, y))
             panel_bases[coord] = coords
         return panel_bases
-    
+
     PANEL_BASES = panel_bases()
 
     def __init__(
@@ -54,54 +56,57 @@ class LEDDataGenerator:
     ):
         self._t = 0
         self._model = model
-        self._att = 0.05
-        self._dec = 0.1
+        self._att = 0.01
+        self._dec = 0.16
         self._tim = {}
 
     def update_led_frame(self) -> None:
         self._t += 1
         self._current_data = self._model.get_model_data()
         for panel_coord, panel in self._current_data.panels.items():
+            current_active = True
             active_leds = self.PANEL_BASES[panel_coord]
-            panel_value = self.get_panel_value(panel_coord)
+            panel_value = self.get_panel_value(panel_coord, current_active)
             for led_coord, led in panel.leds.items():
                 if led_coord in active_leds:
-                    led.colour = self.get_led_colour(panel_coord, led_coord, panel_value)
+                    led.colour = self.get_led_colour(
+                        panel_coord, led_coord, panel_value
+                    )
 
     def get_led_colour(self, panel: Coord, led: Coord, value: float) -> Colour:
-        phase_multiplier = 0.003
+        phase_multiplier = 0.01
         phase_offset = self._t * phase_multiplier
         dir_phase_x = 0
         dir_phase_y = 0
         x = led[0]
         y = led[1]
         if panel == PadModel.PANELS.coords[1]:
-            dir_phase_x = x * 0.01
-            dir_phase_y = y * 0.05
+            dir_phase_x = x * 0.02
+            dir_phase_y = y * 0.1
         elif panel == PadModel.PANELS.coords[3]:
-            dir_phase_x = x * 0.05
-            dir_phase_y = y * 0.01
+            dir_phase_x = x * 0.1
+            dir_phase_y = y * 0.02
         elif panel == PadModel.PANELS.coords[2]:
-            dir_phase_x = (11 - x) * 0.01
-            dir_phase_y = (11 - y) * 0.05
+            dir_phase_x = (11 - x) * 0.02
+            dir_phase_y = (11 - y) * 0.1
         else:
-            dir_phase_x = (11 - x) * 0.05
-            dir_phase_y = (11 - y) * 0.01
+            dir_phase_x = (11 - x) * 0.1
+            dir_phase_y = (11 - y) * 0.02
         hue = int((phase_offset + dir_phase_x + dir_phase_y) * 255) % 255
         sat = 255
         val = int(255 * value)
         r, g, b = self.hsv_to_rgb(hue, sat, val)
         return (r, g, b)
-    
-    def get_panel_value(self, panel: Coord) -> float:
+
+    def get_panel_value(self, panel: Coord, active: int) -> float:
         current_time = time.time()
-        if self._current_data.panels[panel].active:
+        if active:
             if panel not in self._tim or not self._tim[panel]['active']:
                 self._tim[panel] = {'start': current_time, 'active': True}
             elapsed = current_time - self._tim[panel]['start']
             if elapsed < self._att:
-                return elapsed / self._att
-            return 1.0
+                return self.BASE_MAX * (elapsed / self._att)
+            return self.BASE_MAX
         else:
             if panel not in self._tim:
                 return 0.0
@@ -110,7 +115,7 @@ class LEDDataGenerator:
                 self._tim[panel]['active'] = False
             elapsed = current_time - self._tim[panel]['end']
             if elapsed < self._dec:
-                return 1.0 - (elapsed / self._dec)
+                return self.BASE_MAX - self.BASE_MAX * (elapsed / self._dec)
             return 0.0
 
     @staticmethod
@@ -141,4 +146,4 @@ class LEDDataGenerator:
             r, g, b = t, p, v
         else:
             r, g, b = v, p, q
-        return int(r * 75), int(g * 75), int(b * 75)
+        return int(r * 255), int(g * 255), int(b * 255)
